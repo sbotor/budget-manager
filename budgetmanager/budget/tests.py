@@ -11,19 +11,21 @@ class TestDB(TestCase):
         home = Home(name='Home 1')
         home.save()
 
-        account1 = Account(name='User 1', home=home)
+        account1 = Account(name='User 1', bound_home=home)
         account1.save()
+        home.admin = account1
+        home.save()
         Label.objects.create(name='Label H1', home=home)
         Label.objects.create(name='Label H2', home=home)
         Label.objects.create(name='Label A1.1', home=home, account=account1)
         
-        account2 = Account(name='User 2', home=home)
+        account2 = Account(name='User 2', bound_home=home)
         account2.save()
         Label.objects.create(name='Label H3', home=home)
         Label.objects.create(name='Label H4', home=home)
         Label.objects.create(name='Label A2.1', home=home, account=account2)
         
-        account3 = Account(name='User 3', home=home)
+        account3 = Account(name='User 3', bound_home=home)
         account3.save()
         Label.objects.create(name='Label H5', home=home)
         Label.objects.create(name='Label A3.1', home=home, account=account3)
@@ -61,3 +63,6 @@ class TestDB(TestCase):
         account = Account.objects.filter(id=1).get()
         amount = account.getCurrentAmount()
         self.assertEqual(15.5, amount)
+
+    def testAdmin(self):
+        self.assertEqual(Account.objects.filter(pk=1).get(), Home.objects.filter(pk=1).get().admin)
