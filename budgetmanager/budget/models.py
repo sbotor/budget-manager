@@ -12,15 +12,32 @@ class Account(models.Model):
     # Placeholder, eventually integrate the built in User model
     name = models.TextField(max_length=20, verbose_name='Username')
     #user = models.OneToOneField(User, on_delete=models.CASCADE, verbose_name='User')
-
     home = models.ForeignKey(Home, on_delete=models.CASCADE, verbose_name='Home')
+
+    # class Meta:
+    #     proxy = True
 
     def __str__(self):
         #return f'User {self.user} (id: {self.user.id}) from home {self.home} (id: {self.home.id})'
         return f'User {self.name} (id: {self.id}) from home {self.home} (id: {self.home.id})'
 
-    # class Meta:
-    #     proxy = True
+    def getFinalAmount(self):
+        operations = Operation.objects.filter(account=self)
+        total = 0.0
+
+        for op in operations:
+            total += float(op.amount)
+        
+        return total
+
+    def getCurrentAmount(self):
+        operations = Operation.objects.filter(account=self).exclude(final_datetime=None)
+        total = 0.0
+
+        for op in operations:
+            total += float(op.amount)
+        
+        return total
 
 class Label(models.Model):
     name = models.TextField(max_length=10, verbose_name='Label name')
