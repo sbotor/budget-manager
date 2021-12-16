@@ -25,19 +25,35 @@
 
             <div class="collapse navbar-collapse" id="navbarToggle">
                 <ul class="navbar-nav ms-auto">
+                    {% if not user.is_authenticated %}
                     <li class="nav-item">
-                        <a class="nav-link" href="#">Test1</a>
+                        <a class="nav-link" href="/new">Create a Home</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#">Test2</a>
+                        <a class="nav-link" href="/login">Login</a>
                     </li>
+                    {% else %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="/logout">Logout</a>
+                    </li>
+                    {% endif %}
                 </ul>
             </div>
         </div>
     </nav>
 
-    <div id="content" name="content" class="container">
+    {% if user.is_authenticated %}
+    <div class="container">
         {% block content %}
+        {% endblock %}
+    </div>
+    {% endif %}
+
+    <div class="container">
+        {% block unrestricted %}
+        {% if not user.is_authenticated %}
+        <h1>Log in <a href="/login">here</a></h1>
+        {% endif %}
         {% endblock %}
     </div>
 

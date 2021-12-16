@@ -1,0 +1,9 @@
+{% extends 'budget/base.html' %}
+{% load crispy_forms_tags %}
+
+{% block unrestricted %}
+    <form method="POST"> {% csrf_token %}
+        {{ form|crispy }}
+        <br><button type="sumbit" class="btn btn-success">Register</button>
+    </form>
+{% endblock %}

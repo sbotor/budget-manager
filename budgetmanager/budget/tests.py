@@ -6,7 +6,9 @@ from django.db.utils import IntegrityError
 from django.test import TestCase
 from .models import Home, Account, Label, Operation
 
+
 class TestHome(TestCase):
+    """This probably does not work. Do not use until fixed."""
     
     def test_create_home(self):
         """Checks if home and admin creation is correct."""
