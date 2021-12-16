@@ -8,28 +8,51 @@ class Home(models.Model):
     """Home name."""
     
     admin = models.OneToOneField('Account', null=True, on_delete=models.PROTECT, related_name='+')
-    """The Home's Administrator.
-    
+    """The Home's Administrator account.
     Null value is possible, but should only occur during home creation.
+    It has no backward relation to the Home object as it can be obtained via the regular Account.home field.
     """
 
     def __str__(self):
         return self.name
 
-class Account(models.Model):
-    """This is the model of the user account"""
+    @staticmethod
+    def create_home(home_name: str, admin_name: str):
+        """The method used to create a new home and the administrator account.
+        This is a static method returning the newly created Home object.
+        """
 
-    name = models.TextField(max_length=20, verbose_name='Username')
-    """Account name. Eventually it should be removed and a User relation should be added."""
+        home = Home(name=home_name)
+        home.save()
+        admin = Account(name=admin_name, home=home)
+        admin.save()
+        home.admin = admin
+        home.save()
+
+        return home
+    
+    def add_account(self, name: str):
+        """Used to create a new user account, add it to the specified Home and return it."""
+
+        account = Account(name=name, home=self)
+        account.save()
+
+        return account
+
+class Account(models.Model):
+    """The model of the user account."""
+
+    name = models.TextField(max_length=20, verbose_name='Username', unique=True)
+    """Account name, has to be unique. Eventually it should be removed and a User relation should be added."""
 
     home = models.ForeignKey(Home, on_delete=models.CASCADE, verbose_name='Home')
-    """Home which the account belongs to."""
+    """Home that the account belongs to."""
 
     def __str__(self):
-        return f'User {self.name} (id: {self.pk}) from home {self.bound_home} (id: {self.bound_home.pk})'
+        return f'User {self.name} (id: {self.pk}) from home {self.home} (id: {self.home.pk})'
 
-    def getFinalAmount(self) -> float:
-        """This method is used to calculate the finalized amount of money in the account including finalized operations."""
+    def get_final_amount(self):
+        """Used to calculate the finalized amount of money in the account including finalized operations."""
         
         operations = Operation.objects.filter(account=self)
         total = 0.0
@@ -39,8 +62,8 @@ class Account(models.Model):
         
         return total
 
-    def getCurrentAmount(self) -> float:
-        """This method is used to calculate the current amount of money excluding unfinalized operations."""
+    def get_current_amount(self):
+        """Used to calculate the current amount of money excluding unfinalized operations."""
         
         operations = Operation.objects.filter(account=self).exclude(final_datetime=None)
         total = 0.0
@@ -60,13 +83,11 @@ class Label(models.Model):
 
     home = models.ForeignKey(Home, on_delete=models.CASCADE, verbose_name='Home')
     """Home which the label belong to.
-    
     It should be set even if the label is a personal label.
     """
 
     account = models.ForeignKey(Account, on_delete = models.CASCADE, null=True, verbose_name='Account')
     """For a personal label this is the account that created it.
-    
     It must be empty for a home label.
     """
 
@@ -81,13 +102,11 @@ class Operation(models.Model):
 
     label = models.ForeignKey(Label, on_delete=models.SET_NULL, null=True, verbose_name='Label')
     """An optional label attached to the operation.
-    
     Can either be a personal or home label.
     """
 
     creation_datetime = models.DateTimeField(auto_now_add=True, verbose_name='Time created')
     """Creation date and time of the operation.
-    
     It is automatically set during creation if not specified otherwise.
     """
     
@@ -95,15 +114,14 @@ class Operation(models.Model):
     """Finalization date and time of the operation. If present it means that the operation is finalized."""
     
     amount = models.DecimalField(decimal_places=2, max_digits=8, verbose_name='Operation amount')
-    """Amount of money that the operation carried."""
+    """The amount of money that the operation carried."""
 
     def __str__(self):
         retStr =  f'Operation id: {self.pk} amount: {self.amount} in account: {self.account.pk}. Created {self.creation_datetime}'
         return (retStr + f', finalized {self.final_datetime}.') if self.final_datetime else (retStr + '.')
 
-    def finalize(self, final_dt=None):
-        """This method is used to finalize the operation.
-        
+    def finalize(self, final_dt: timezone.datetime = None):
+        """Finalizes the operation setting the finalization time according to the specified parameter.
         If no argument is passed it uses the current datetime.
         """
         

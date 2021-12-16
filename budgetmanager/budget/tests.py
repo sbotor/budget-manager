@@ -1,68 +1,53 @@
 from django.test import TestCase
 from django.utils import timezone
+from django.db.utils import IntegrityError
 
 # Create your tests here.
 from django.test import TestCase
 from .models import Home, Account, Label, Operation
 
-# Create your tests here.
-class TestDB(TestCase):
-    def setUp(self):
-        home = Home(name='Home 1')
-        home.save()
-
-        account1 = Account(name='User 1', bound_home=home)
-        account1.save()
-        home.admin = account1
-        home.save()
-        Label.objects.create(name='Label H1', home=home)
-        Label.objects.create(name='Label H2', home=home)
-        Label.objects.create(name='Label A1.1', home=home, account=account1)
-        
-        account2 = Account(name='User 2', bound_home=home)
-        account2.save()
-        Label.objects.create(name='Label H3', home=home)
-        Label.objects.create(name='Label H4', home=home)
-        Label.objects.create(name='Label A2.1', home=home, account=account2)
-        
-        account3 = Account(name='User 3', bound_home=home)
-        account3.save()
-        Label.objects.create(name='Label H5', home=home)
-        Label.objects.create(name='Label A3.1', home=home, account=account3)
-        Label.objects.create(name='Label A3.2', home=home, account=account3)
-
-        Operation.objects.create(account=account1,
-                                    label=Label.objects.filter(home=home, name='Label H3').get(),
-                                    amount = 10, final_datetime = timezone.now())
-        Operation.objects.create(account=account1,
-                                    label=Label.objects.filter(home=home, name='Label H3').get(),
-                                    amount = -30)
-        Operation.objects.create(account=account1,
-                                    label=Label.objects.filter(home=home, name='Label A3.1').get(),
-                                    amount = 5.5, final_datetime = timezone.now())
-        
-
-    def testSimpleCreation(self):
-        try:
-            print(Home.objects.all())
-            print(Operation.objects.all())
-            print(Label.objects.all())
-            print(Account.objects.all())
-
-            self.assertTrue(True)
-        except Exception as e:
-            print(e)
-            self.fail()
+class TestHome(TestCase):
     
-    def testAccountFinalized(self):
-        account = Account.objects.filter(id=1).get()
-        amount = account.getFinalAmount()
-        self.assertEqual(-14.5, amount)
+    def test_create_home(self):
+        """Checks if home and admin creation is correct."""
 
-    def testAccountCurrent(self):
-        account = Account.objects.filter(id=1).get()
-        amount = account.getCurrentAmount()
-        self.assertEqual(15.5, amount)
+        # Given
+        home = Home.create_home('home1', 'admin_home1')
 
-    def testAdmin(self):
-        self.assertEqual(Account.objects.filter(pk=1).get(), Home.objects.filter(pk=1).get().admin)
+        # When
+        home.save()
+        created_home = Home.objects.all().get()
+        created_admin = created_home.admin
+        created_user = Account.objects.all().get()
+
+        # Then
+        self.assertEqual(created_home, home, "Home objects are not equal.")
+        self.assertEqual(created_admin, created_user, "The admin and user are not equal.")
+
+    def test_add_account(self):
+        """Checks if creating and adding a new non-duplicate account is correct."""
+
+        # Given
+        home = Home.create_home('home1', 'admin_home1')
+
+        # When
+        home.save()
+        added_account = home.add_account('added_account')
+
+        # Then
+        expected_account = Account(id=2, name='added_account', home=home)
+        self.assertEqual(expected_account, added_account, 'The accounts are not equal.')
+
+    def test_add_duplicate_account(self):
+        """Checks if creating and adding a new duplicate account is correct."""
+
+        # Given
+        home = Home.create_home('home1', 'admin_home1')
+
+        # When
+        home.save()
+        home.add_account('added_account')
+
+        # Then
+        with self.assertRaises(IntegrityError, msg='IntegrityError was not raised.'):
+            home.add_account('added_account')
