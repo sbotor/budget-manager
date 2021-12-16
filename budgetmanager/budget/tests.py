@@ -49,5 +49,4 @@ class TestHome(TestCase):
         home.add_account('added_account')
 
         # Then
-        with self.assertRaises(IntegrityError, msg='IntegrityError was not raised.'):
-            home.add_account('added_account')
+        self.assertIsNone(home.add_account('added_account'))

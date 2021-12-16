@@ -1,13 +1,14 @@
 from django.db import models
 from django.utils import timezone
+from django.core.exceptions import ValidationError
 
 class Home(models.Model):
     """Home model used for account grouping."""
 
-    name = models.TextField(max_length=20, verbose_name='Home name')
+    name = models.CharField(max_length=20, verbose_name='Home name')
     """Home name."""
     
-    admin = models.OneToOneField('Account', null=True, on_delete=models.PROTECT, related_name='+')
+    admin = models.OneToOneField('Account', null=True, on_delete=models.RESTRICT, related_name='+')
     """The Home's Administrator account.
     Null value is possible, but should only occur during home creation.
     It has no backward relation to the Home object as it can be obtained via the regular Account.home field.
@@ -19,37 +20,51 @@ class Home(models.Model):
     @staticmethod
     def create_home(home_name: str, admin_name: str):
         """The method used to create a new home and the administrator account.
-        This is a static method returning the newly created Home object.
+        This is a static method returning a tuple containig the newly created home and admin object.
+
+        If the admin username is not unique it returns None and the home is not created.
         """
 
         home = Home(name=home_name)
-        home.save()
         admin = Account(name=admin_name, home=home)
+    
+        try:
+            admin.validate_unique()
+        except ValidationError:
+            return None
+
+        home.save()
         admin.save()
         home.admin = admin
         home.save()
-
         return home
     
     def add_account(self, name: str):
-        """Used to create a new user account, add it to the specified Home and return it."""
+        """Used to create a new user account, add it to the specified Home and return it.
+        
+        If the username is not unique no Account is created and the method returns None.
+        """
 
         account = Account(name=name, home=self)
-        account.save()
+        try:
+            account.validate_unique()
+        except ValidationError:
+            return None
 
+        account.save()
         return account
 
 class Account(models.Model):
     """The model of the user account."""
 
-    name = models.TextField(max_length=20, verbose_name='Username', unique=True)
+    name = models.CharField(max_length=20, verbose_name='Username', unique=True)
     """Account name, has to be unique. Eventually it should be removed and a User relation should be added."""
 
     home = models.ForeignKey(Home, on_delete=models.CASCADE, verbose_name='Home')
     """Home that the account belongs to."""
 
     def __str__(self):
-        return f'User {self.name} (id: {self.pk}) from home {self.home} (id: {self.home.pk})'
+        return self.name
 
     def get_final_amount(self):
         """Used to calculate the finalized amount of money in the account including finalized operations."""
@@ -78,7 +93,7 @@ class Account(models.Model):
 class Label(models.Model):
     """Label model. Home labels do not have a value in the account field and personal labels do."""
     
-    name = models.TextField(max_length=10, verbose_name='Label name')
+    name = models.CharField(max_length=10, verbose_name='Label name')
     """Label name."""
 
     home = models.ForeignKey(Home, on_delete=models.CASCADE, verbose_name='Home')
@@ -116,9 +131,11 @@ class Operation(models.Model):
     amount = models.DecimalField(decimal_places=2, max_digits=8, verbose_name='Operation amount')
     """The amount of money that the operation carried."""
 
+    description = models.TextField(max_length = 500, null=True, verbose_name="Label description")
+    """Optional description of the operation."""
+
     def __str__(self):
-        retStr =  f'Operation id: {self.pk} amount: {self.amount} in account: {self.account.pk}. Created {self.creation_datetime}'
-        return (retStr + f', finalized {self.final_datetime}.') if self.final_datetime else (retStr + '.')
+        return f'Operation created: {self.creation_datetime}, finalized: {self.final_datetime}, label: {self.label}'
 
     def finalize(self, final_dt: timezone.datetime = None):
         """Finalizes the operation setting the finalization time according to the specified parameter.

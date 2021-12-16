@@ -1,0 +1,30 @@
+{% extends 'budget/base.html' %}
+
+{% block content %}
+<div class="container">
+    <h1 class="mb-1">Create Home</h1>
+    <form method="post" action="homes/add"> {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" class="btn btn-primary" name="type" value="create">Create Home</button>
+    </form>
+</div>
+
+{% if homes %}
+<div class="container">
+    <form method="post" action="homes/remove"> {% csrf_token %}
+        <h3 class="mt-5 mb-1">Home list:</h3>
+        {% for home in homes %}
+        <div class="row mb-2">
+            <div class="col-auto">
+                <p>id: {{ home.id }}, {{ home }}, admin: {{ home.admin }}</p>
+            </div>
+            <div class="col-auto">
+                <button type="submit" class="btn btn-danger" name="home_id" value="{{ home.id }}">Remove</button>
+            </div>
+        </div>
+        {% endfor %}
+    </form>
+    
+</div>
+{% endif %}
+{% endblock %}
