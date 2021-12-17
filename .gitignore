@@ -1,6 +1,10 @@
 # Django secret key
 key.txt
 
+# Migrations
+migrations/*
+!migrations/__init.py__
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
