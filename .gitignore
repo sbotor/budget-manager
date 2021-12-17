@@ -1,6 +1,13 @@
 # Django secret key
 key.txt
 
+# Ignore migrations for now
+budgetmanager/budget/migrations/**
+!__init.py__
+
+budgetmanager/users/migrations/**
+!__init.py__
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

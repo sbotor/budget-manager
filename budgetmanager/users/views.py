@@ -11,7 +11,7 @@ def add_home(request: HttpRequest):
             form.save()
             home_name = form.cleaned_data.get('home_name')
             messages.success(request, f'Home "{home_name}" was successfully created')
-            return redirect('/')
+            return redirect('/login')
         else:
             return render(request, 'users/register.html', {'form': form})
     

@@ -82,6 +82,22 @@ class Account(models.Model):
 
         return total
 
+    def add_current(self, amount: float, commit: bool = True):
+        """Used to add the specified value to the current account."""
+        
+        self.current_amount += amount
+        if commit:
+            self.save()
+
+    def add_final(self, amount: float, commit: bool = True):
+        """Used to add the specified value to the final account."""
+
+        self.final_amount += amount
+        if commit:
+            self.save()
+
+        
+
 # This can be done like this or two separate tables can be created (one for home and the other for personal labels).
 # With separate tables there is a problem with relating labels to operations.
 
@@ -145,25 +161,22 @@ class Operation(models.Model):
 
         if self._state.adding:
             account = self.account
-            # print(account.final_amount)
-            account.final_amount += self.amount
-            if self.final_datetime:
-                account.current_amount += self.amount
-
-            account.save()
+            if self.final_datetime is not None:
+                account.add_current(self.amount, commit=False)
+            
+            account.add_final(self.amount)
 
         super().save(force_insert=force_insert, force_update=force_update,
                      using=using, update_fields=update_fields)
 
     def delete(self, using=None, keep_parents=False):
-        """Overriden delete method to update account money during saving."""
+        """Overriden delete method to update account money during deleting."""
 
         account = self.account
-        account.final_amount -= self.amount
-        if self.final_datetime:
-            account.current_amount -= self.amount
-
-        account.save()
+        if self.final_datetime is not None:
+            account.add_current(-self.amount, commit=False)
+        
+        account.add_final(-self.amount)
 
         super().delete(using=using, keep_parents=keep_parents)
 
@@ -175,8 +188,11 @@ class Operation(models.Model):
         If no argument is passed it uses the current datetime.
         """
 
-        if (self.final_datetime is not None):
-            if (final_dt is None):
+        if self.final_datetime is None:
+            if final_dt is None:
                 self.final_datetime = timezone.now()
             else:
                 self.final_datetime = final_dt
+            
+            self.save()
+            self.account.add_current(self.amount)
