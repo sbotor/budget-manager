@@ -1,20 +1,13 @@
 from django import forms
 from . import models
 
-class CreateHome(forms.Form):
-    """Form for new Home creation."""
 
-    home_name = forms.CharField(max_length=20, label='Home name')
-    """Home name. Does not have to be unique."""
+class AddOperationForm(forms.Form):
 
-    admin_name = forms.CharField(max_length = 20, label='Administrator username')
-    """Admin user name. Has to be unique. This is the user name for the starter Account."""
+    finalized = forms.BooleanField(
+        required=False, label='Should the operation be instantly finalized')
 
-class CreateAccount(forms.Form):
-    """Form for new Account creation."""
+    amount = forms.DecimalField(max_value=999999.0, label='Money amount')
 
-    user_name = forms.CharField(max_length=20, label='User name')
-    """User name. Has to be unique."""
-
-    home = forms.ModelChoiceField(models.Home.objects.all(), to_field_name="name", label="Home")
-    """Home to which the user should belong."""
+    description = forms.CharField(
+        max_length=500, widget=forms.Textarea, required=False, label='Optional description')
