@@ -5,5 +5,13 @@ from . import forms
 
 def index(request: HttpRequest):
     """Renders the homepage."""
-    return render(request, "budget/index.html")
     
+    context = {
+        'operations': []
+    }
+    
+    if request.user.is_authenticated:
+        context['operations'] = Operation.objects.filter(account=request.user.account)
+    
+
+    return render(request, "budget/index.html", context)

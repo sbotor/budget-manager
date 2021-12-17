@@ -1,6 +1,8 @@
 {% extends 'budget/base.html' %}
 {% load crispy_forms_tags %}
 
+{% block title %}Login{% endblock %}
+
 {% block unrestricted %}
 <h3>Log in to an existing Home account</h3>
 <form method="POST"> {% csrf_token %}

@@ -1,9 +1,24 @@
 {% extends 'budget/base.html' %}
 
+{% block title %}Homepage{% endblock %}
+
 {% block content %}
-<div class="container">
-    <a href="homes" class="btn btn-secondary m-1" role="button">Homes</a>
-    <a href="users" class="btn btn-secondary m-1" role="button">Users</a>
-    <a href="#" class="btn btn-secondary m-1" role="button">Operations</a>
+<h3>Hello, {{ user.name|default:user.username }}</h3>
+<div>
+    <p>Recent operations:</p>
+    <div class="container">
+        <div class="col">
+            {% for op in operations %}
+            <p>id: {{ op.id }}, {{ op }}</p>
+            {% empty %}
+            <p>None</p>
+            {% endfor %}
+        </div>
+    
+        <div class="col">
+            <button class="btn btn-success">Add new</button>
+        </div>
+</div>
+
 </div>
 {% endblock %}

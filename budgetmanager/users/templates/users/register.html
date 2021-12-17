@@ -1,6 +1,8 @@
 {% extends 'budget/base.html' %}
 {% load crispy_forms_tags %}
 
+{% block title %}Create a new Home{% endblock %}
+
 {% block unrestricted %}
     <form method="POST"> {% csrf_token %}
         {{ form|crispy }}
