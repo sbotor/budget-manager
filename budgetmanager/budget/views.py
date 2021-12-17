@@ -2,6 +2,7 @@ from django.http.request import HttpRequest
 from django.shortcuts import render, redirect
 from django.utils import timezone
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 
 from .models import *
 from . import forms
@@ -9,6 +10,7 @@ from . import forms
 def index(request: HttpRequest):
     return render(request, 'budget/index.html')
 
+@login_required(login_url='/login')
 def user(request: HttpRequest):
     """Renders the Home page."""
 
@@ -18,10 +20,14 @@ def user(request: HttpRequest):
 
         if request.method == 'POST':
             op_id = request.POST.get('rm_id')
+            fin_id = request.POST.get('fin_id')
             form = forms.AddOperationForm(request.POST)
 
             if op_id is not None:
                 Operation.objects.get(id=op_id).delete()
+                redir = True
+            elif fin_id is not None:
+                Operation.objects.get(id=fin_id).finalize()
                 redir = True
             elif form.is_valid():
                 data = form.cleaned_data
@@ -30,7 +36,6 @@ def user(request: HttpRequest):
                     final_datetime=final_datetime, description=data.get('description'))
                 redir = True
 
-        #request.user.account.operation_set.create(amount=10.0, description="Test")
         context['operations'] = Operation.objects.filter(
             account=request.user.account)[:10:-1]
         context['final_amount'] = request.user.account.final_amount
