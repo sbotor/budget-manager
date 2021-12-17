@@ -26,9 +26,18 @@ def user(request: HttpRequest):
             elif form.is_valid():
                 data = form.cleaned_data
                 final_datetime = timezone.now() if data.get('finalized') else None
-                request.user.account.operation_set.create(amount=data.get('amount'),
-                    final_datetime=final_datetime, description=data.get('description'))
-                redir = True
+
+                #Check if final or current amount isn't surpassing the limitations
+                added_amount = data.get('amount')
+                current_money = request.user.account.current_amount
+                final_money = request.user.account.final_amount
+                if(abs(current_money + added_amount) < 1000000 and abs(final_money + added_amount) < 1000000):
+                    request.user.account.operation_set.create(amount=data.get('amount'),
+                        final_datetime=final_datetime, description=data.get('description'))
+                    redir = True
+                else:
+                    redir = False
+                    #TODO: Add a message for the user that the min/max amont was surpassed
 
         #request.user.account.operation_set.create(amount=10.0, description="Test")
         context['operations'] = Operation.objects.filter(
@@ -36,7 +45,6 @@ def user(request: HttpRequest):
         context['final_amount'] = request.user.account.final_amount
         context['current_amount'] = request.user.account.current_amount
         context['add_op_form'] = forms.AddOperationForm()
-
         return redirect('/user') if redir else render(request, 'budget/user.html', context)
 
     else:
