@@ -1,12 +1,16 @@
 from django.http.request import HttpRequest
 from django.shortcuts import render, redirect
 from django.utils import timezone
+from django.contrib import messages
+
 from .models import *
 from . import forms
 
-
 def index(request: HttpRequest):
-    """Renders the homepage."""
+    return render(request, 'budget/index.html')
+
+def user(request: HttpRequest):
+    """Renders the Home page."""
 
     if request.user.is_authenticated:
         context = {}
@@ -33,7 +37,8 @@ def index(request: HttpRequest):
         context['current_amount'] = request.user.account.current_amount
         context['add_op_form'] = forms.AddOperationForm()
 
-        return redirect('/') if redir else render(request, 'budget/index.html', context)
+        return redirect('/user') if redir else render(request, 'budget/user.html', context)
 
     else:
+        messages.error(request, 'You are not authorized to view this page.')
         return render(request, 'budget/index.html')

@@ -5,7 +5,7 @@ from . import models
 class AddOperationForm(forms.Form):
 
     finalized = forms.BooleanField(
-        required=False, label='Should the operation be instantly finalized')
+        required=False, label='Finalized')
 
     amount = forms.DecimalField(max_value=999999.0, label='Money amount')
 

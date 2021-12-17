@@ -33,13 +33,11 @@
                         <a class="btn btn-outline-success nav-link" type="button" href="/login">Login</a>
                     </li>
                     {% else %}
-                    <li class="navbar-text">
-                        <span class="mx-1">
-                            <i>Home:</i> {{ user.account.home.name }}
-                        </span>
-                        <span class="mx-1">
-                            <i>User:</i> {{ user.username }}
-                        </span>
+                    <li class="nav-item">
+                        <a class=nav-link href='/#'>{{ user.account.home.name }}</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class=nav-link href='/user'>{{ user.username }}</a>
                     </li>
                     <li class="nav-item ms-5">
                         <a class="btn btn-outline-danger nav-link" href="/logout">Logout</a>
@@ -49,6 +47,12 @@
             </div>
         </div>
     </nav>
+
+    {% block messages %}
+    {% for message in messages %}
+    <p>{{ message }}</p>
+    {% endfor %}
+    {% endblock %}
 
     {% if user.is_authenticated %}
     <div class="container">

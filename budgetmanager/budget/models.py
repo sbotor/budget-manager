@@ -165,7 +165,7 @@ class Operation(models.Model):
 
         account.save()
 
-        super().delete(using=None, keep_parents=False)
+        super().delete(using=using, keep_parents=keep_parents)
 
     def __str__(self):
         return f'Operation amount: {self.amount}, created: {self.creation_datetime}, finalized: {self.final_datetime}, label: {self.label}'

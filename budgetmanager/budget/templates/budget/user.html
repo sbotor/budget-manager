@@ -1,0 +1,67 @@
+{% extends 'budget/base.html' %}
+{% load crispy_forms_filters %}
+
+{% block title %}Home {{ user.account.home.name }}{% endblock %}
+
+{% block content %}
+<h3>Hello, {{ user.name|default:user.username }}</h3>
+<div class="container">
+    <div class="row">
+        <div class="col-auto">
+            <p>Current account: {{ current_amount }}</p>
+            <p>Final account: {{ final_amount }}</p>
+        </div>
+    </div>
+
+    <div class="row mt-3">
+        <div class="col-4">
+            <p>Recent operations:</p>
+        </div>
+        <div class="col-auto">
+            <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#newOperation">Add new</button>
+        </div>
+
+        <form method="POST"'> {% csrf_token %}
+            <div class="modal fade" id="newOperation" data-bs-backdrop="static" data-bs-keyboard="false"
+                tab-index="-1" aria-labelledby="newOperationLabel" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="newOperationLabel">Add a new operation</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            {{ add_op_form|crispy }}
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-danger" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Create</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <form method="POST" class="mt-3"> {% csrf_token %}
+        {% for op in operations %}
+        <div class="row">
+            <div class="col-4">
+                <p>id: {{ op.id }}, {{ op }}</p>
+            </div>
+            <div class="col-1">
+                {% if not op.final_datetime %}
+                <button type="submit" class="btn btn-outline-secondary" name="fin_id" value="{{ op.id }}">Finalize</button>
+                {% endif %}
+            </div>
+            <div class="col-1">
+                <button type="submit" class="btn btn-outline-danger" name="rm_id" value="{{ op.id }}">Remove</button>
+            </div>
+        </div>
+        {% empty %}
+        <p>No operations found</p>
+        {% endfor %}
+</div>
+</form>
+</div>
+{% endblock %}
