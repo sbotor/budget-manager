@@ -55,3 +55,28 @@ def user(request: HttpRequest):
     else:
         messages.error(request, 'You are not authorized to view this page.')
         return render(request, 'budget/index.html')
+
+
+@login_required(login_url='/login')
+def history(request:HttpRequest):
+    if request.user.is_authenticated:
+        context = {}
+        redir = False
+
+        op_id = request.POST.get('rm_id')
+        fin_id = request.POST.get('fin_id')
+        if op_id is not None:
+            Operation.objects.get(id=op_id).delete()
+            redir = True
+        elif fin_id is not None:
+            Operation.objects.get(id=fin_id).finalize()
+            redir = True
+
+        context['operations'] = Operation.objects.filter(
+            account=request.user.account)
+
+
+        return redirect('/history') if redir else render(request, 'budget/history.html', context)
+    else:
+        messages.error(request, 'You are not authorized to view this page.')
+        return render(request, 'budget/index.html')
