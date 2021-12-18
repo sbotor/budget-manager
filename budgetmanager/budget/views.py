@@ -63,14 +63,15 @@ def history(request:HttpRequest):
         context = {}
         redir = False
 
-        op_id = request.POST.get('rm_id')
-        fin_id = request.POST.get('fin_id')
-        if op_id is not None:
-            Operation.objects.get(id=op_id).delete()
-            redir = True
-        elif fin_id is not None:
-            Operation.objects.get(id=fin_id).finalize()
-            redir = True
+        if request.method == 'POST':
+            op_id = request.POST.get('rm_id')
+            fin_id = request.POST.get('fin_id')
+            if op_id is not None:
+                Operation.objects.get(id=op_id).delete()
+                redir = True
+            elif fin_id is not None:
+                Operation.objects.get(id=fin_id).finalize()
+                redir = True
 
         context['operations'] = Operation.objects.filter(
             account=request.user.account)
