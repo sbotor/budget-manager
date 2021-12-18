@@ -11,3 +11,5 @@ class AddOperationForm(forms.Form):
 
     description = forms.CharField(
         max_length=500, widget=forms.Textarea, required=False, label='Optional description')
+
+    #TODO: Labels

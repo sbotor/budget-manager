@@ -46,7 +46,7 @@ def user(request: HttpRequest):
                     #TODO: Add a message for the user that the min/max amont was surpassed
 
         context['operations'] = Operation.objects.filter(
-            account=request.user.account).order_by('-id')[:10]
+            account=request.user.account).order_by('-id')[:5]
         context['final_amount'] = request.user.account.final_amount
         context['current_amount'] = request.user.account.current_amount
         context['add_op_form'] = forms.AddOperationForm()

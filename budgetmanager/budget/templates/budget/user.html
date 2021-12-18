@@ -15,7 +15,7 @@
 
     <div class="row mt-3">
         <div class="col-4">
-            <p>Recent operations:</p>
+            <h3>Recent operations:</h3>
         </div>
         <div class="col-auto">
             <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#newOperation">Add new</button>
@@ -44,24 +44,57 @@
     </div>
 
     <form method="POST" class="mt-3"> {% csrf_token %}
-        {% for op in operations %}
-        <div class="row">
-            <div class="col-4">
-                <p>id: {{ op.id }}, {{ op }}</p>
-            </div>
-            <div class="col-1">
-                {% if not op.final_datetime %}
-                <button type="submit" class="btn btn-outline-secondary" name="fin_id" value="{{ op.id }}">Finalize</button>
-                {% endif %}
-            </div>
-            <div class="col-1">
-                <button type="submit" class="btn btn-outline-danger" name="rm_id" value="{{ op.id }}">Remove</button>
-            </div>
-        </div>
-        {% empty %}
-        <p>No operations found</p>
-        {% endfor %}
-</div>
-</form>
+        <table class="table table-sm">
+            <thead>
+                <tr>
+                <th scope="col">#</th>
+                <th scope="col">Amount</th>
+                <th scope="col">Created</th>
+                <th scope="col">Finalized</th>
+                <th scope="col">Label</th>
+                <th scope="col"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {%for op in operations %}
+                <tr>
+                    <th scope="row">{{op.id}}</th>    <!-- Number TODO: dchange the id for numbers 1-n -->
+
+                    <td>{{op.amount}}</td>    <!-- Amount -->
+
+                    <td>{{op.creation_datetime}}</td> <!-- Created -->
+
+                    <td>  <!-- Finalized -->
+                        {% if op.final_datetime %}
+                        {{op.final_datetime}}
+                        {%else%}
+                        <div class="col-1">
+                            {% if not op.final_datetime %}
+                            <button type="submit" class="btn btn-outline-secondary" name="fin_id" value="{{ op.id }}">Finalize</button>
+                            {% endif %}
+                        </div>
+                        {%endif%}
+                    </td>
+
+                    <td>  <!-- Label -->
+                        {% if op.label %}
+                        {{op.label}}
+                        {%else%}
+                        -
+                        {%endif%}
+                    </td>
+
+                    <td> <!-- Remove button -->
+                        <div class="col-1">
+                            <button type="submit" class="btn btn-outline-danger" name="rm_id" value="{{ op.id }}">Remove</button>
+                        </div>
+                    </td>
+
+                </tr>
+                {%endfor%}
+            </tbody>
+        </table>
+        <a href='/history'>More history</a>
+    </form>
 </div>
 {% endblock %}
