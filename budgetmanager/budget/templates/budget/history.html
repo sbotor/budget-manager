@@ -1,0 +1,63 @@
+{% extends 'budget/base.html' %}
+{% load crispy_forms_filters %}
+
+{% block title %}Home {{ user.account.home.name }}{% endblock %}
+
+{% block content %}
+<h3>History of Your operations</h3>
+<div class="container">
+
+    <form method="POST"> {% csrf_token %}
+        <table class="table">
+            <thead>
+                <tr>
+                <th scope="col">#</th>
+                <th scope="col">Amount</th>
+                <th scope="col">Created</th>
+                <th scope="col">Finalized</th>
+                <th scope="col">Label</th>
+                <th scope="col"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {%for op in operations reversed %}
+                <tr>
+                    <th scope="row">{{op.id}}</th>    <!-- Number TODO: dchange the id for numbers 1-n -->
+
+                    <td>{{op.amount}}</td>    <!-- Amount -->
+
+                    <td>{{op.creation_datetime}}</td> <!-- Created -->
+
+                    <td>  <!-- Finalized -->
+                        {% if op.final_datetime %}
+                        {{op.final_datetime}}
+                        {%else%}
+                        <div class="col-1">
+                            {% if not op.final_datetime %}
+                            <button type="submit" class="btn btn-outline-secondary" name="fin_id" value="{{ op.id }}">Finalize</button>
+                            {% endif %}
+                        </div>
+                        {%endif%}
+                    </td>
+
+                    <td>  <!-- Label -->
+                        {% if op.label %}
+                        {{op.label}}
+                        {%else%}
+                        -
+                        {%endif%}
+                    </td>
+
+                    <td> <!-- Remove button -->
+                        <div class="col-1">
+                            <button type="submit" class="btn btn-outline-danger" name="rm_id" value="{{ op.id }}">Remove</button>
+                        </div>
+                    </td>
+
+                </tr>
+                {%endfor%}
+            </tbody>
+        </table>
+    </form>
+</div>
+{% endblock %}
