@@ -6,6 +6,7 @@
 {% block content %}
 <h3>Hello, {{ user.name|default:user.username }}</h3>
 <div class="container">
+    <!--Info header and label menu (?)-->
     <div class="row">
         <div class="col-4">
             <p>Current account: {{ current_amount }}</p>
@@ -13,7 +14,8 @@
         </div>
 
         <div class="col-auto">
-            <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#newPersLabelModal">New personal
+            <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#newPersLabelModal">New
+                personal
                 label</button>
         </div>
 
@@ -41,9 +43,9 @@
 
     </div>
 
-    <!--Recent operations-->
+    <!--Recent operations header-->
     <div class="row mt-3">
-        <div class="col-4">
+        <div class="col-auto">
             <h3>Recent operations:</h3>
         </div>
         <div class="col-auto">
@@ -73,60 +75,130 @@
         </form>
     </div>
 
-    <!--Recent operations list-->
-    <form method="POST" class="mt-3"> {% csrf_token %}
-        <table class="table table-sm">
-            <thead>
-                <tr>
-                    <th scope="col">#</th>
-                    <th scope="col">Amount</th>
-                    <th scope="col">Created</th>
-                    <th scope="col">Finalized</th>
-                    <th scope="col">Label</th>
-                    <th scope="col"></th>
-                </tr>
-            </thead>
-            <tbody>
-                {%for op in operations %}
-                <tr>
-                    <th scope="row">{{op.id}}</th> <!-- Number TODO: dchange the id for numbers 1-n -->
+    <!--Recent operations-->
+    <table class="table table-borderless shadow table-hover">
+        <thead class="thead border-2 border-top-0 border-start-0 border-end-0 border-dark">
+            <tr>
+                <th scope="col">#</th>
+                <th scope="col">Amount</th>
+                <th scope="col">Label</th>
+            </tr>
+        </thead>
+        <tbody>
+            {%for op in operations %}
+            <tr type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ forloop.counter }}"
+                aria-expanded="false" aria-controls="collapse{{ forloop.counter }}" class="trowborder-1 border-bottom-0 border-start-0 border-end-0">
 
-                    <td>{{op.amount}}</td> <!-- Amount -->
+                <th scope="row">{{ forloop.counter }}</th>
 
-                    <td>{{op.creation_datetime}}</td> <!-- Created -->
+                <td>{{ op.amount }}</td> <!-- Amount -->
 
-                    <td>
-                        <!-- Finalized -->
-                        {% if op.final_datetime %}
-                        {{op.final_datetime}}
-                        {%else%}
-                        <div class="col-1">
-                            {% if not op.final_datetime %}
-                            <button type="submit" class="btn btn-outline-secondary" name="fin_id"
-                                value="{{ op.id }}">Finalize</button>
-                            {% endif %}
-                        </div>
-                        {%endif%}
-                    </td>
-
-                    <td>
-                        <!-- Label -->
-                        {{ op.label|default:'-' }}
-                    </td>
-
-                    <td>
-                        <!-- Remove button -->
-                        <div class="col-1">
-                            <button type="submit" class="btn btn-outline-danger" name="rm_id"
-                                value="{{ op.id }}">Remove</button>
-                        </div>
-                    </td>
-
-                </tr>
-                {%endfor%}
-            </tbody>
-        </table>
-        <a href="/history" class="btn btn-outline-primary">More history</a>
-    </form>
+                <td>
+                    <!-- Label -->
+                    {{ op.label|default:'-' }}
+                </td>
+            </tr>
+            <tr>
+                <td colspan="12">
+                    <!--Operation info collapse-->
+                    <div class="collapse" id="collapse{{ forloop.counter }}">
+                        <table class="table table-borderless">
+                            <thead class="thead-light border-top border-bottom">
+                                <tr class="table table-borderless">
+                                    <td scope="col">Created</td>
+                                    <td scope="col">Finalized</td>
+                                    <td scope="col"></td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>{{ op.creation_datetime }}</td> <!-- Created -->
+                                    <td>
+                                        <!-- Finalized-->
+                                        {% if op.final_datetime %}
+                                        {{ op.final_datetime }}
+                                        {% else %}
+                                        <div class="col-1">
+                                            <button type="submit" class="btn btn-outline-secondary"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#finalizeOperation{{ forloop.counter }}">Finalize</button>
+                                        </div>
+                                        <!--Finalize operation modal-->
+                                        <form method="POST" class="mt-3"> {% csrf_token %}
+                                            <div class="modal fade" id="finalizeOperation{{ forloop.counter }}"
+                                                data-bs-backdrop="static" data-bs-keyboard="false" tab-index="-1"
+                                                aria-labelledby="finalizeOperationLabel" aria-hidden="true">
+                                                <div class="modal-dialog modal-dialog-centered">
+                                                    <div class="modal-content">
+                                                        <div class="modal-header">
+                                                            <h5 class="modal-title" id="finalizeOperationLabel">
+                                                                Confirmation</h5>
+                                                            <button type="button" class="btn-close"
+                                                                data-bs-dismiss="modal" aria-label="Close"></button>
+                                                        </div>
+                                                        <div class="modal-body">
+                                                            Do you want to finalize this operation?<br>
+                                                            Amount: {{op.amount}}<br>
+                                                            Created: {{op.creation_datetime}}
+                                                        </div>
+                                                        <div class="modal-footer">
+                                                            <button type="button" class="btn btn-outline-danger"
+                                                                data-bs-dismiss="modal">Cancel</button>
+                                                            <button type="submit" class="btn btn-secondary"
+                                                                name="fin_id" value="{{ op.id }}">Finalize</button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </form>
+                                        {%endif%}
+                                    </td>
+                                    <td>
+                                        <!-- Remove button-->
+                                        <div class="col-1">
+                                            <button class="btn btn-outline-danger" data-bs-toggle="modal"
+                                                data-bs-target="#removeOperation{{ forloop.counter }}">Remove</button>
+                                        </div>
+                                        <!--Remove operation confirmation modal-->
+                                        <form method="POST" class="mt-3"> {% csrf_token %}
+                                            <div class="modal fade" id="removeOperation{{ forloop.counter }}"
+                                                data-bs-backdrop="static" data-bs-keyboard="false" tab-index="-1"
+                                                aria-labelledby="removeOperationLabel" aria-hidden="true">
+                                                <div class="modal-dialog modal-dialog-centered">
+                                                    <div class="modal-content">
+                                                        <div class="modal-header">
+                                                            <h5 class="modal-title" id="removeOperationLabel">
+                                                                Confirmation</h5>
+                                                            <button type="button" class="btn-close"
+                                                                data-bs-dismiss="modal" aria-label="Close"></button>
+                                                        </div>
+                                                        <div class="modal-body">
+                                                            Do you really want to remove this operation?<br>
+                                                            Amount: {{ op.amount }}<br>
+                                                            Created: {{ op.creation_datetime }}
+                                                            {% if op.final_datetime %} <br> Finalized: {{
+                                                            op.final_datetime }} {% endif %}
+                                                        </div>
+                                                        <div class="modal-footer">
+                                                            <button type="button" class="btn btn-outline-danger"
+                                                                data-bs-dismiss="modal">Cancel</button>
+                                                            <button type="submit" class="btn btn-danger" name="rm_id"
+                                                                value="{{ op.id }}">Remove</button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </form>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </td>
+            </tr>
+            {%endfor%}
+        </tbody>
+    </table>
+    <a href='/history' class="btn btn-outline-secondary">More history</a>
 </div>
 {% endblock %}

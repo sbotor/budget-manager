@@ -106,8 +106,8 @@ class OpHistoryView(UserPageView):
         return context
 
     def post(self, request: HttpRequest, *args, **kwargs):
-        if request.POST.get('op_id') is not None:
-            op_id = request.POST.get('op_id')
+        if request.POST.get('rm_id') is not None:
+            op_id = request.POST.get('rm_id')
             Operation.objects.get(id=op_id).delete()
         elif request.POST.get('fin_id') is not None:
             op_id = request.POST.get('fin_id')
