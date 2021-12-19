@@ -1,5 +1,6 @@
 from django.db import models, IntegrityError
 from django.db.models import signals
+from django.db.models.query import QuerySet
 from django.dispatch import receiver
 from django.utils import timezone
 from django.contrib.auth.models import User
@@ -40,6 +41,13 @@ class Home(models.Model):
             if not home._state.adding:
                 home.delete()
             return None
+
+    def get_labels(self, home_only: bool = False):
+        queryset = Label.objects.filter(home=self)
+        if home_only:
+            queryset = queryset.filter(account=None)
+
+        return queryset
 
 
 class Account(models.Model):
@@ -101,6 +109,17 @@ class Account(models.Model):
         if commit:
             self.save()
 
+    def available_labels(self, include_home: bool = True):
+        """Returns a QuerySet of all the available labels of this Account. 
+        
+        If `include_home` is set to False only personal labels are returned.
+        """
+    
+        if include_home:
+            return Label.objects.filter(home=self.home).filter(account=self)
+        else:
+            return Label.objects.filter(account=self)
+
         
 
 # This can be done like this or two separate tables can be created (one for home and the other for personal labels).
@@ -126,7 +145,7 @@ class Label(models.Model):
     """
 
     def __str__(self):
-        return self.name
+        return f'[H] {self.name}' if self.account is None else self.name
 
 
 class Operation(models.Model):
@@ -186,7 +205,7 @@ class Operation(models.Model):
         super().delete(using=using, keep_parents=keep_parents)
 
     def __str__(self):
-        return f'Operation amount: {self.amount}, created: {self.creation_datetime}, finalized: {self.final_datetime}, label: {self.label}'
+        return f'{self.amount}*' if self.final_datetime is None else self.amount
 
     def finalize(self, final_dt: timezone.datetime = None):
         """Finalizes the operation setting the finalization time according to the specified parameter.

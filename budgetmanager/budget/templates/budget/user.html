@@ -1,7 +1,7 @@
 {% extends 'budget/base.html' %}
 {% load crispy_forms_filters %}
 
-{% block title %}{{ user.name|default:user.username }} profile{% endblock %}
+{% block title %}Profile{% endblock %}
 
 {% block content %}
 <h3>Hello, {{ user.name|default:user.username }}</h3>
@@ -14,32 +14,8 @@
         </div>
 
         <div class="col-auto">
-            <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#newPersLabelModal">New
-                personal
-                label</button>
+            <a href="user/labels" class="btn btn-outline-secondary">My labels</a>
         </div>
-
-        <!--New personal label modal-->
-        <form method="POST"> {% csrf_token %}
-            <div class="modal fade" id="newPersLabelModal" data-bs-backdrop="static" data-bs-keyboard="false"
-                tab-index="-1" aria-labelledby="newPersLabelModalLabel" aria-hidden="true">
-                <div class="modal-dialog">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title" id="newPersLabelModalLabel">Add a new personal label</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                        </div>
-                        <div class="modal-body">
-                            {{ add_pers_label_form|crispy }}
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-danger" data-bs-dismiss="modal">Cancel</button>
-                            <button type="submit" class="btn btn-primary" name="add_pers_label">Create</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </form>
 
     </div>
 
@@ -199,6 +175,6 @@
             {%endfor%}
         </tbody>
     </table>
-    <a href='/history' class="btn btn-outline-secondary">More history</a>
+    <a href='user/history' class="btn btn-outline-secondary">More history</a>
 </div>
 {% endblock %}
