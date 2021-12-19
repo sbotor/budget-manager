@@ -24,17 +24,22 @@ class Home(models.Model):
     @staticmethod
     def create_home(home_name: str, user: User):
         """The method used to create a new home and add the administrator User passed as a parameter."""
-
+        
+        home = Home(name=home_name)
+        admin = Account(user=user, home=home)
         try:
-            home = Home(name=home_name)
-            admin = Account(user=user, home=home)
             home.save()
             admin.save()
             home.admin = admin
             home.save()
             return home
         except IntegrityError:
-            return home
+            # Clean up and return None
+            if not admin._state.adding:
+                admin.delete()
+            if not home._state.adding:
+                home.delete()
+            return None
 
 
 class Account(models.Model):
@@ -132,7 +137,7 @@ class Operation(models.Model):
     """The account that the operation belongs to."""
 
     label = models.ForeignKey(
-        Label, on_delete=models.SET_NULL, null=True, verbose_name='Label')
+        Label, on_delete=models.SET_NULL, null=True, blank=True, verbose_name='Label')
     """An optional label attached to the operation.
     Can either be a personal or home label.
     """

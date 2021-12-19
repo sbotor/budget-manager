@@ -4,15 +4,14 @@ from django.utils import timezone
 
 
 class AddOperationForm(forms.ModelForm):
+    class Meta:
+        model = models.Operation
+        fields = ['finalized', 'amount', 'description', 'label']
 
     finalized = forms.BooleanField(
         required=False, label='Finalized')
 
-    class Meta:
-        model = models.Operation
-        fields = ['finalized', 'amount', 'description']
-
-    def save(self, commit=True):
+    def save(self, commit: bool = True):
         """Overriden method to check if the operation should be finalized and update accordingly."""
 
         if self.cleaned_data.get('finalized'):
@@ -22,3 +21,8 @@ class AddOperationForm(forms.ModelForm):
         return self.instance
 
     #TODO: Labels
+
+class AddPersonalLabelForm(forms.ModelForm):
+    class Meta:
+        model = models.Label
+        fields = ['name']
