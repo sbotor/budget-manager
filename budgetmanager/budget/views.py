@@ -104,10 +104,10 @@ class OpHistoryView(UserPageView):
         return redirect(self.redirect_name)
 
 
-class LabelEditView(UserPageView):
-    template_name = 'budget/personal_labels.html'
+class UserLabelsView(UserPageView):
+    template_name = 'budget/user_labels.html'
 
-    redirect_name = 'personal_labels'
+    redirect_name = 'user_labels'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -123,9 +123,13 @@ class LabelEditView(UserPageView):
         
         if request.POST.get('add_pers_label') is not None:
             self.add_personal_label(request.POST)
+        
         elif request.POST.get('pers_rm_id') is not None:
             label_id = request.POST.get('pers_rm_id')
             Label.objects.get(id=label_id).delete()
+        
+        elif request.POST.get('pers_rename_id') is not None:
+            self.rename_personal_label(request.POST)
         
         return redirect(self.redirect_name)
 
@@ -134,6 +138,14 @@ class LabelEditView(UserPageView):
 
         label = Label(home=self.user.account.home,
                       account=self.user.account)
+        form = forms.AddPersonalLabelForm(post, instance=label)
+
+        if form.is_valid():
+            form.save()
+
+    def rename_personal_label(self, post: QueryDict):
+        label_id = post.get('pers_rename_id')
+        label = Label.objects.get(id=label_id)
         form = forms.AddPersonalLabelForm(post, instance=label)
 
         if form.is_valid():

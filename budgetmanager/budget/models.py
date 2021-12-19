@@ -1,9 +1,7 @@
 from django.db import models, IntegrityError
-from django.db.models import signals
-from django.db.models.query import QuerySet
-from django.dispatch import receiver
 from django.utils import timezone
 from django.contrib.auth.models import User
+from django.db.models.functions import Lower
 
 
 class Home(models.Model):
@@ -128,6 +126,12 @@ class Account(models.Model):
 
 class Label(models.Model):
     """Label model. Home labels do not have a value in the account field and personal labels do."""
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['name', 'account'], name='unique_name_account'),
+            models.UniqueConstraint(fields=['name', 'home'], name='unique_name_home')
+        ]
 
     name = models.CharField(max_length=10, verbose_name='Label name')
     """Label name."""

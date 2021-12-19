@@ -31,3 +31,4 @@ class AddPersonalLabelForm(forms.ModelForm):
     class Meta:
         model = Label
         fields = ['name']
+        
