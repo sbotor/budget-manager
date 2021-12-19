@@ -99,8 +99,9 @@
                                                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                                         </div>
                                                         <div class="modal-body">
-                                                            Do you want to finalize this operation?
-                                                            <!--TODO: add operation info-->
+                                                            Do you want to finalize this operation?<br>
+                                                            Amount: {{op.amount}}<br>
+                                                            Created: {{op.creation_datetime}}
                                                         </div>
                                                         <div class="modal-footer">
                                                             <button type="button" class="btn btn-outline-danger" data-bs-dismiss="modal">Cancel</button>
@@ -126,8 +127,10 @@
                                                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                                         </div>
                                                         <div class="modal-body">
-                                                            Do you really want to remove this operation?
-                                                            <!--TODO: add operation info-->
+                                                            Do you really want to remove this operation?<br>
+                                                            Amount: {{op.amount}}<br>
+                                                            Created: {{op.creation_datetime}}
+                                                            {%if op.final_datetime%} <br> Finalized: {{op.final_datetime}} {%endif%}
                                                         </div>
                                                         <div class="modal-footer">
                                                             <button type="button" class="btn btn-outline-danger" data-bs-dismiss="modal">Cancel</button>
