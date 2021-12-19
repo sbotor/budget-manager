@@ -152,7 +152,7 @@ class Operation(models.Model):
     """The amount of money that the operation carried."""
 
     description = models.TextField(
-        max_length=500, null=True, verbose_name="Label description")
+        max_length=500, null=True, blank=True, verbose_name="Optional description")
     """Optional description of the operation."""
 
     def save(self, force_insert=False, force_update=False, using=None,

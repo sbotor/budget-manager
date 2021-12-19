@@ -7,8 +7,10 @@ from django.contrib.auth.decorators import login_required
 from .models import *
 from . import forms
 
+
 def index(request: HttpRequest):
     return render(request, 'budget/index.html')
+
 
 @login_required(login_url='/login')
 def user(request: HttpRequest):
@@ -21,7 +23,8 @@ def user(request: HttpRequest):
         if request.method == 'POST':
             op_id = request.POST.get('rm_id')
             fin_id = request.POST.get('fin_id')
-            form = forms.AddOperationForm(request.POST)
+            form = forms.AddOperationForm(
+                request.POST, instance=Operation(account=request.user.account))
 
             if op_id is not None:
                 Operation.objects.get(id=op_id).delete()
@@ -31,19 +34,19 @@ def user(request: HttpRequest):
                 redir = True
             elif form.is_valid():
                 data = form.cleaned_data
-                final_datetime = timezone.now() if data.get('finalized') else None
 
-                #Check if final or current amount isn't surpassing the limitations
+                # Check if final or current amount isn't surpassing the limitations
+                # Reply: Shouldn't the database take care of it? Raise an error for example.
                 added_amount = data.get('amount')
                 current_money = request.user.account.current_amount
                 final_money = request.user.account.final_amount
                 if(abs(current_money + added_amount) < 1000000 and abs(final_money + added_amount) < 1000000):
-                    request.user.account.operation_set.create(amount=data.get('amount'),
-                        final_datetime=final_datetime, description=data.get('description'))
+                    form.save()
                     redir = True
                 else:
                     redir = False
-                    #TODO: Add a message for the user that the min/max amont was surpassed
+                    messages.error('Too much $$$')
+                    # TODO: Add a message for the user that the min/max amont was surpassed
 
         context['operations'] = Operation.objects.filter(
             account=request.user.account).order_by('-id')[:5]
@@ -58,7 +61,7 @@ def user(request: HttpRequest):
 
 
 @login_required(login_url='/login')
-def history(request:HttpRequest):
+def history(request: HttpRequest):
     if request.user.is_authenticated:
         context = {}
         redir = False
@@ -75,7 +78,6 @@ def history(request:HttpRequest):
 
         context['operations'] = Operation.objects.filter(
             account=request.user.account)
-
 
         return redirect('/history') if redir else render(request, 'budget/history.html', context)
     else:

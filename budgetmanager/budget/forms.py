@@ -1,15 +1,24 @@
 from django import forms
 from . import models
+from django.utils import timezone
 
 
-class AddOperationForm(forms.Form):
+class AddOperationForm(forms.ModelForm):
 
     finalized = forms.BooleanField(
         required=False, label='Finalized')
 
-    amount = forms.DecimalField(max_value=999999.0, label='Money amount', min_value=-999999)
+    class Meta:
+        model = models.Operation
+        fields = ['finalized', 'amount', 'description']
 
-    description = forms.CharField(
-        max_length=500, widget=forms.Textarea, required=False, label='Optional description')
+    def save(self, commit=True):
+        """Overriden method to check if the operation should be finalized and update accordingly."""
+
+        if self.cleaned_data.get('finalized'):
+            self.instance.final_datetime = timezone.now()
+
+        super().save(commit=commit)
+        return self.instance
 
     #TODO: Labels
