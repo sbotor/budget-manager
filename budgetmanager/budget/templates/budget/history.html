@@ -22,7 +22,7 @@
             <tbody>
                 {%for op in operations reversed %}
                 <tr>
-                    <th scope="row">{{op.id}}</th>    <!-- Number TODO: dchange the id for numbers 1-n -->
+                    <th scope="row">{{forloop.counter}}</th>
 
                     <td>{{op.amount}}</td>    <!-- Amount -->
 
