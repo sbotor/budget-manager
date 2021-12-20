@@ -156,7 +156,7 @@ class UserHomemateView(UserPageView):
     template_name = 'budget/home.html'
 
     redirect_name = 'user_homemates'
-
+    
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         return context
