@@ -1,1 +1,8 @@
-dupa
+{% extends 'budget/base.html' %}
+{% load crispy_forms_filters %}
+
+{% block title %}Profile{% endblock %}
+
+{% block content %}
+<h3>List of users in {{ user.account.home.name }}</h3> 
+{% endblock %}

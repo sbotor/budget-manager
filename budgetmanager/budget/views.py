@@ -149,4 +149,17 @@ class UserLabelsView(UserPageView):
         form = forms.AddPersonalLabelForm(post, instance=label)
 
         if form.is_valid():
-            form.save()
+            form.save() 
+
+class UserHomemateView(UserPageView):
+
+    template_name = 'budget/home.html'
+
+    redirect_name = 'user_homemates'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        return context
+
+    def post(self, request: HttpRequest, *args, **kwargs):
+        return redirect(self.redirect_name)
