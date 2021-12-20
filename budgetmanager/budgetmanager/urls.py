@@ -20,7 +20,7 @@ import users.views
 urlpatterns = [
     path('', include('budget.urls')),
     path('new/', users.views.add_home, name='new_home'),
-    
+
     path('', include('django.contrib.auth.urls')),
     
     path('admin/', admin.site.urls)
