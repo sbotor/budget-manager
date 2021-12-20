@@ -63,7 +63,7 @@
         <tbody>
             {%for op in operations %}
             <tr type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ forloop.counter }}"
-                aria-expanded="false" aria-controls="collapse{{ forloop.counter }}" class="trowborder-1 border-bottom-0 border-start-0 border-end-0">
+                aria-expanded="false" aria-controls="collapse{{ forloop.counter }}" class="border border-dark border-start-0 border-end-0 border-bottom-0">
 
                 <th scope="row">{{ forloop.counter }}</th>
 
@@ -75,7 +75,7 @@
                 </td>
             </tr>
             <tr>
-                <td colspan="12">
+                <td colspan="12" style="padding:0">
                     <!--Operation info collapse-->
                     <div class="collapse" id="collapse{{ forloop.counter }}">
                         <table class="table table-borderless">
@@ -89,7 +89,7 @@
                             <tbody>
                                 <tr>
                                     <td>{{ op.creation_datetime }}</td> <!-- Created -->
-                                    <td>
+                                    <td> 
                                         <!-- Finalized-->
                                         {% if op.final_datetime %}
                                         {{ op.final_datetime }}
@@ -116,6 +116,9 @@
                                                             Do you want to finalize this operation?<br>
                                                             Amount: {{op.amount}}<br>
                                                             Created: {{op.creation_datetime}}
+                                                            {%if op.description%}
+                                                            <br><br>Your description:<br>
+                                                            <p class="text-break">{{op.description}}</p> {%endif%}
                                                         </div>
                                                         <div class="modal-footer">
                                                             <button type="button" class="btn btn-outline-danger"
@@ -152,8 +155,11 @@
                                                             Do you really want to remove this operation?<br>
                                                             Amount: {{ op.amount }}<br>
                                                             Created: {{ op.creation_datetime }}
-                                                            {% if op.final_datetime %} <br> Finalized: {{
-                                                            op.final_datetime }} {% endif %}
+                                                            {% if op.final_datetime %} <br> 
+                                                            Finalized: {{op.final_datetime}} {% endif %}
+                                                            {%if op.description%}
+                                                            <br><br>Your description:<br>
+                                                            <p class="text-break">{{op.description}}</p> {%endif%}
                                                         </div>
                                                         <div class="modal-footer">
                                                             <button type="button" class="btn btn-outline-danger"
