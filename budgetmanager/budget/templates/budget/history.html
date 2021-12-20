@@ -30,60 +30,74 @@
                     <!--Collapsed part-->
                     <div id="collapse{{forloop.counter}}" class="accordion-collapse collapse">
                         <div class="accordion-body">
-                            <div class="row my-2">
-                                
-                                <!--Left part with description-->
+
+                            <!--Created-->
+                            <div class="row">
                                 <div class="col border border-dark border-start-0 border-top-0 border-bottom-0 text-end">
-                                    Created: <br><br>
-                                    Finalized: <br><br>
-
-                                    <!--Description should be last, becouse I don't want to thing how I have to change all the divs to show multiline text-->
-                                    Description: <br><br>
+                                    <div class="my-3">Created:</div>
                                 </div>
-
-                                <!--Right part with information-->
-                                <div class="col"> 
-                                    <!--Creation date-->
-                                    {{op.creation_datetime}} <br><br> 
-
-                                    <!--Finalization-->
-                                    {%if op.final_datetime%} {{op.final_datetime}}
-                                    {%else%} 
-                                    Not finalized yet
-                                    <button type="submit" class="btn btn-outline-secondary btn-sm mx-3" data-bs-toggle="modal" data-bs-target="#finalizeOperation{{ forloop.counter }}">Finalize now</button>
-                                    <form method="POST" class="mt-3"> {% csrf_token %}
-                                        <div class="modal fade" id="finalizeOperation{{ forloop.counter }}" data-bs-backdrop="static" data-bs-keyboard="false"
-                                        tab-index="-1" aria-labelledby="finalizeOperationLabel" aria-hidden="true">
-                                            <div class="modal-dialog modal-dialog-centered">
-                                                <div class="modal-content">
-                                                    <div class="modal-header">
-                                                        <h5 class="modal-title" id="finalizeOperationLabel">Confirmation</h5>
-                                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                                    </div>
-                                                    <div class="modal-body">
-                                                        Do you want to finalize this operation?<br>
-                                                        Amount: {{ op.amount }}<br>
-                                                        Created: {{ op.creation_datetime }}
-                                                    </div>
-                                                    <div class="modal-footer">
-                                                        <button type="button" class="btn btn-outline-danger" data-bs-dismiss="modal">Cancel</button>
-                                                        <button type="submit" class="btn btn-secondary" name="fin_id" value="{{ op.id }}">Finalize</button>
+                                <div class="col">
+                                    <div class="my-3">{{op.creation_datetime}}</div>
+                                </div>
+                            </div>
+                            <!--Finalized-->
+                            <div class="row">
+                                <div class="col border border-dark border-start-0 border-top-0 border-bottom-0 text-end">
+                                    <div class="my-3">Finalized:</div>
+                                </div>
+                                <div class="col">
+                                    <div class="my-3">
+                                        {%if op.final_datetime%} {{op.final_datetime}}
+                                        {%else%} 
+                                        Not finalized yet
+                                        <button type="submit" class="btn btn-outline-secondary btn-sm mx-3" data-bs-toggle="modal" data-bs-target="#finalizeOperation{{ forloop.counter }}">Finalize now</button>
+                                        {%endif%}
+                                        <form method="POST" class="mt-3"> {% csrf_token %}
+                                            <div class="modal fade" id="finalizeOperation{{ forloop.counter }}" data-bs-backdrop="static" data-bs-keyboard="false"
+                                            tab-index="-1" aria-labelledby="finalizeOperationLabel" aria-hidden="true">
+                                                <div class="modal-dialog modal-dialog-centered">
+                                                    <div class="modal-content">
+                                                        <div class="modal-header">
+                                                            <h5 class="modal-title" id="finalizeOperationLabel">Confirmation</h5>
+                                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                        </div>
+                                                        <div class="modal-body">
+                                                            Do you want to finalize this operation?<br>
+                                                            Amount: {{ op.amount }}<br>
+                                                            Created: {{ op.creation_datetime }}
+                                                        </div>
+                                                        <div class="modal-footer">
+                                                            <button type="button" class="btn btn-outline-danger" data-bs-dismiss="modal">Cancel</button>
+                                                            <button type="submit" class="btn btn-secondary" name="fin_id" value="{{ op.id }}">Finalize</button>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                    </form>
-                                    
-                                    {%endif%} 
-
-
-
-
-                                    <!--Description-->
-                                    <!--Description should be last, becouse I don't want to thing how I have to change all the divs to show multiline text-->
-                                    {%if op.description%} <p class="text-break">{{op.description}}</p> {%else%} No description {%endif%}
+                                        </form>
+                                    </div>
                                 </div>
                             </div>
+                            <!--Description-->
+                            <div class="row">
+                                <div class="col border border-dark border-start-0 border-top-0 border-bottom-0 text-end">
+                                    <div class="my-3">Description:</div>
+                                </div>
+                                <div class="col">
+                                    <div class="my-3 text-break">{{op.description}}</div>
+                                </div>
+                            </div>
+
+                            <!-- Template for new rows
+                            <div class="row">
+                                <div class="col border border-dark border-start-0 border-top-0 border-bottom-0 text-end">
+                                    <div class="my-3">Put your information label here</div> 
+                                </div>
+                                <div class="col">
+                                    <div class="my-3 text-break">Put your information here</div>
+                                </div>
+                            </div>
+                            -->
+
                             <div class="col text-end">
                                 <button class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#removeOperation{{ forloop.counter }}">Remove</button> 
                             
@@ -110,7 +124,7 @@
                                         </div>
                                     </div>
                                 </form>
-                        </div>
+                            </div>
                         </div>
                     </div>
                 </div>
