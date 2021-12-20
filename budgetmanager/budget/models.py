@@ -146,8 +146,11 @@ class Label(models.Model):
         return f'[H] {self.name}' if self.account is None else self.name
 
 
-class Operation(models.Model):
-    """Operation model. If the operation does not have a final_datetime than it is not finalized."""
+class BaseOperation(models.Model):
+    """Abstract operation model."""
+
+    class Meta:
+        abstract = True
 
     account = models.ForeignKey(
         Account, on_delete=models.CASCADE, verbose_name='Account')
@@ -159,6 +162,18 @@ class Operation(models.Model):
     Can either be a personal or home label.
     """
 
+    amount = models.DecimalField(
+        decimal_places=2, max_digits=8, verbose_name='Operation amount')
+    """The amount of money that the operation carried."""
+
+    description = models.TextField(
+        max_length=500, null=True, blank=True, verbose_name="Optional description")
+    """Optional description of the operation."""
+
+
+class Operation(BaseOperation):
+    """Operation model. If the operation does not have a final_datetime than it is not finalized."""
+
     creation_datetime = models.DateTimeField(
         auto_now_add=True, verbose_name='Time created')
     """Creation date and time of the operation.
@@ -168,14 +183,6 @@ class Operation(models.Model):
     final_datetime = models.DateTimeField(
         null=True, verbose_name='Time finalized')
     """Finalization date and time of the operation. If present it means that the operation is finalized."""
-
-    amount = models.DecimalField(
-        decimal_places=2, max_digits=8, verbose_name='Operation amount')
-    """The amount of money that the operation carried."""
-
-    description = models.TextField(
-        max_length=500, null=True, blank=True, verbose_name="Optional description")
-    """Optional description of the operation."""
 
     plan = models.ForeignKey('OperationPlan', on_delete=models.SET_NULL,
                              null=True, blank=True, verbose_name='Planned')
@@ -224,7 +231,7 @@ class Operation(models.Model):
             self.account.add_current(self.amount)
 
 
-class OperationPlan(models.Model):
+class OperationPlan(BaseOperation):
     """Operation plan."""
 
     class TimePeriod(models.TextChoices):
@@ -255,4 +262,6 @@ class OperationPlan(models.Model):
     def calculate_next(self):
         pass
 
-    pass
+    # TODO: impement creation from the data
+    def create_operation(self):
+        pass
