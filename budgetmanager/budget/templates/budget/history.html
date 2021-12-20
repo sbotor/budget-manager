@@ -52,7 +52,7 @@
                                         Not finalized yet
                                         <button type="submit" class="btn btn-outline-secondary btn-sm mx-3" data-bs-toggle="modal" data-bs-target="#finalizeOperation{{ forloop.counter }}">Finalize now</button>
                                         {%endif%}
-                                        <form method="POST" class="mt-3"> {% csrf_token %}
+                                        <form method="POST" class="mt-3  text-start"> {% csrf_token %}
                                             <div class="modal fade" id="finalizeOperation{{ forloop.counter }}" data-bs-backdrop="static" data-bs-keyboard="false"
                                             tab-index="-1" aria-labelledby="finalizeOperationLabel" aria-hidden="true">
                                                 <div class="modal-dialog modal-dialog-centered">
@@ -101,7 +101,7 @@
                             <div class="col text-end">
                                 <button class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#removeOperation{{ forloop.counter }}">Remove</button> 
                             
-                                <form method="POST" class="p-0"> {% csrf_token %}
+                                <form method="POST" class="p-0 text-start"> {% csrf_token %}
                                     <div class="modal fade" id="removeOperation{{ forloop.counter }}" data-bs-backdrop="static" data-bs-keyboard="false"
                                     tab-index="-1" aria-labelledby="removeOperationLabel" aria-hidden="true">
                                         <div class="modal-dialog modal-dialog-centered">
