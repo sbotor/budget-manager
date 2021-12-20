@@ -5,12 +5,13 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.utils.decorators import method_decorator
 from django.views.generic.base import TemplateView
+from django.contrib.auth.forms import UserCreationForm
 
 from .models import *
 from . import forms
 
 
-def index(request: HttpRequest):
+def index(request: HttpRequest): 
     return render(request, 'budget/index.html')
 
 
@@ -26,7 +27,7 @@ class UserView(UserPageView):
 
     template_name = 'budget/user.html'
 
-    redirect_name = 'user_page'
+    redirect_name = 'user_page' 
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -159,7 +160,33 @@ class UserHomemateView(UserPageView):
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        return context
+        context['form'] = UserCreationForm()
+        context['accounts'] = Account.objects.filter(
+            home=self.user.account.home
+        )
+        print(context['accounts'])
+        return context 
 
     def post(self, request: HttpRequest, *args, **kwargs):
-        return redirect(self.redirect_name)
+        form = UserCreationForm(request.POST)
+        if form.is_valid():
+            account = request.user.account
+            newAccount = Account(home=account.home)
+            user = form.save()
+            newAccount.user = user
+            newAccount.save() 
+            messages.success(request, f'User "{user.username}" was successfully created')
+        return redirect('user_homemates') 
+
+    def add_personal_label(self, post: QueryDict):
+        """Adds a new personal label to the user Account."""
+
+        label = Label(home=self.user.account.home,
+                      account=self.user.account)
+        form = forms.AddPersonalLabelForm(post, instance=label)
+
+        if form.is_valid():
+            form.save()
+        
+
+        
