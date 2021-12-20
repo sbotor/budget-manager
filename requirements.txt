@@ -1,0 +1,6 @@
+# Project requirements
+# Installation: pip install -r requirements.txt
+
+django >= 3.2.9
+django-crispy-forms
+crispy-bootstrap5
