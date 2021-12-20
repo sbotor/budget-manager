@@ -21,7 +21,7 @@ class AddOperationForm(forms.ModelForm):
         """Overriden method to check if the operation should be finalized and update accordingly."""
 
         if self.cleaned_data.get('finalized'):
-            self.instance.final_datetime = timezone.now()
+            self.instance.final_date = timezone.now()
 
         super().save(commit=commit)
         return self.instance

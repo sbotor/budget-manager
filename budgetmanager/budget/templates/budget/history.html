@@ -37,7 +37,7 @@
                                     <div class="my-3">Created:</div>
                                 </div>
                                 <div class="col">
-                                    <div class="my-3">{{op.creation_datetime}}</div>
+                                    <div class="my-3">{{op.creation_date}}</div>
                                 </div>
                             </div>
                             <!--Finalized-->
@@ -47,7 +47,7 @@
                                 </div>
                                 <div class="col">
                                     <div class="my-3">
-                                        {%if op.final_datetime%} {{op.final_datetime}}
+                                        {%if op.final_date%} {{op.final_date}}
                                         {%else%} 
                                         Not finalized yet
                                         <button type="submit" class="btn btn-outline-secondary btn-sm mx-3" data-bs-toggle="modal" data-bs-target="#finalizeOperation{{ forloop.counter }}">Finalize now</button>
@@ -64,7 +64,7 @@
                                                         <div class="modal-body">
                                                             Do you want to finalize this operation?<br>
                                                             Amount: {{ op.amount }}<br>
-                                                            Created: {{ op.creation_datetime }}
+                                                            Created: {{ op.creation_date }}
                                                         </div>
                                                         <div class="modal-footer">
                                                             <button type="button" class="btn btn-outline-danger" data-bs-dismiss="modal">Cancel</button>
@@ -113,8 +113,8 @@
                                                 <div class="modal-body">
                                                     Do you really want to remove this operation?<br>
                                                     Amount: {{ op.amount }}<br>
-                                                    Created: {{ op.creation_datetime }}
-                                                    {% if op.final_datetime %} <br> Finalized: {{ op.final_datetime }} {% endif %}
+                                                    Created: {{ op.creation_date }}
+                                                    {% if op.final_date %} <br> Finalized: {{ op.final_date }} {% endif %}
                                                 </div>
                                                 <div class="modal-footer">
                                                     <button type="button" class="btn btn-outline-danger" data-bs-dismiss="modal">Cancel</button>

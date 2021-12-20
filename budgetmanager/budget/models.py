@@ -86,7 +86,7 @@ class Account(models.Model):
         """Used to calculate the current amount of money excluding unfinalized operations."""
 
         operations = Operation.objects.filter(
-            account=self).exclude(final_datetime=None)
+            account=self).exclude(final_date=None)
         total = 0.0
 
         for op in operations:
@@ -172,15 +172,15 @@ class BaseOperation(models.Model):
 
 
 class Operation(BaseOperation):
-    """Operation model. If the operation does not have a final_datetime than it is not finalized."""
+    """Operation model. If the operation does not have a `final_date` than it is not finalized."""
 
-    creation_datetime = models.DateTimeField(
+    creation_date = models.DateField(
         auto_now_add=True, verbose_name='Time created')
     """Creation date and time of the operation.
     It is automatically set during creation if not specified otherwise.
     """
 
-    final_datetime = models.DateTimeField(
+    final_date = models.DateField(
         null=True, verbose_name='Time finalized')
     """Finalization date and time of the operation. If present it means that the operation is finalized."""
 
@@ -194,7 +194,7 @@ class Operation(BaseOperation):
 
         if self._state.adding:
             account = self.account
-            if self.final_datetime is not None:
+            if self.final_date is not None:
                 account.add_current(self.amount, commit=False)
 
             account.add_final(self.amount)
@@ -206,7 +206,7 @@ class Operation(BaseOperation):
         """Overriden delete method to update account money during deleting."""
 
         account = self.account
-        if self.final_datetime is not None:
+        if self.final_date is not None:
             account.add_current(-self.amount, commit=False)
 
         account.add_final(-self.amount)
@@ -214,18 +214,18 @@ class Operation(BaseOperation):
         super().delete(using=using, keep_parents=keep_parents)
 
     def __str__(self):
-        return f'{self.amount}*' if self.final_datetime is None else str(self.amount)
+        return f'{self.amount}*' if self.final_date is None else str(self.amount)
 
-    def finalize(self, final_dt: timezone.datetime = None):
+    def finalize(self, final_date: timezone.datetime = None):
         """Finalizes the operation setting the finalization time according to the specified parameter.
-        If no argument is passed it uses the current datetime.
+        If no argument is passed it uses the current date.
         """
 
-        if self.final_datetime is None:
-            if final_dt is None:
-                self.final_datetime = timezone.now()
+        if self.final_date is None:
+            if final_date is None:
+                self.final_date = timezone.now()
             else:
-                self.final_datetime = final_dt
+                self.final_date = final_date
 
             self.save()
             self.account.add_current(self.amount)
