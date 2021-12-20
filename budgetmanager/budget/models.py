@@ -1,3 +1,4 @@
+from datetime import date, timedelta
 from django.db import models, IntegrityError
 from django.utils import timezone
 from django.contrib.auth.models import User
@@ -172,7 +173,7 @@ class BaseOperation(models.Model):
 
 
 class Operation(BaseOperation):
-    """Operation model. If the operation does not have a `final_date` than it is not finalized."""
+    """Operation model. If the operation does not have a `final_date` then it is not finalized."""
 
     creation_date = models.DateField(
         auto_now_add=True, verbose_name='Time created')
@@ -253,15 +254,44 @@ class OperationPlan(BaseOperation):
     next_date = models.DateField(verbose_name='Next operation creation date')
     """Next day that the new operation should be created."""
 
-    # TODO: ensure that the next_date is calculated before saving
-    def save(self, force_insert=False, force_update=False, using=None,
-             update_fields=None):
-        return super().save(force_insert=force_insert, force_update=force_update, using=using, update_fields=update_fields)
+    def calculate_next(self, base_date: date = None):
+        """Calculates the next date of the operation creation.
 
-    # TODO: implement next operation date calculation
-    def calculate_next(self):
-        pass
+        If no `base_date` is specified the next planned date is used.
+        """
 
-    # TODO: impement creation from the data
-    def create_operation(self):
-        pass
+        if self.period == self.TimePeriod.DAY:
+            delta = timedelta(days=self.period_count)
+
+        elif self.period == self.TimePeriod.WEEK:
+            delta = timedelta(weeks=self.period_count)
+
+        elif self.period == self.TimePeriod.MONTH:
+            delta = timedelta(days=30 * self.period_count)
+
+        elif self.period == self.TimePeriod.YEAR:
+            delta = timedelta(days=365 * self.period_count)
+
+        else:
+            delta = timedelta()
+
+        if base_date is None:
+            base_date = self.next_date
+
+        next_date = base_date + delta
+        return next_date
+
+    def create_operation(self, commit: bool = True):
+        """Creates a new Operation object in the database according to this plan. Returns the created Operation"""
+
+        op = Operation(account=self.account,
+                       label=self.label,
+                       amount=self.amount,
+                       description=self.description,
+                       plan=self)
+
+        op.save()
+        self.next_date = self.calculate_next()
+        self.save()
+
+        return op

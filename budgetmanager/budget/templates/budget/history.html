@@ -4,13 +4,24 @@
 {% block title %}Operation history{% endblock %}
 
 {% block content %}
-<h3>History of Your operations</h3>
 <div class="container">
+    <div class="row">
+        <div class="col-auto">
+            <a href="/user" class="btn btn-outline-primary mb-3">Back to profile</a>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-auto">
+            <h3>History of Your operations</h3>
+        </div>
+    </div>
+    
     <!--Table-->
     <div class="container">
         <div class="row">
             <!--Header-->
-            <div class="container row mx-2"> 
+            <div class="container row mx-2">
                 <div class="col-1"><strong>#</strong></div>
                 <div class="col-4"><strong>Label</strong></div>
                 <div class="col-4"><strong>Amount</strong></div>
