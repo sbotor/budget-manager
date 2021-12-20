@@ -7,10 +7,8 @@ Software Engineering is suffering.
 <b>How do I prepare for this hell?</b>
 - Download Python
 - Set up a virtual environment (for example with venv: https://docs.python.org/3/tutorial/venv.html). It is not really that important, can be omitted.
-- Download Django, django-crispy-forms and crispy-bootstrap5:
-  - <i>pip install django</i>
-  - <i>pip install django-crispy-forms</i>
-  - <i>pip install crispy-bootstrap5</i>
+- Download the requirements with pip:
+  - <i>pip install -r requirements.txt</i>
 - Create a key.txt file in the project folder and paste the key from the Discord channel.
 
 <b>What even is this hell?</b><br>

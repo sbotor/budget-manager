@@ -33,7 +33,6 @@ ALLOWED_HOSTS = []
 
 INSTALLED_APPS = [
     'budget.apps.BudgetConfig',
-    'users.apps.UsersConfig',
 
     'crispy_forms',
     'crispy_bootstrap5',

@@ -1,6 +1,5 @@
 from django.http.request import HttpRequest, QueryDict
 from django.shortcuts import render, redirect
-from django.utils import timezone
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.utils.decorators import method_decorator
@@ -11,8 +10,24 @@ from .models import *
 from . import forms
 
 
-def index(request: HttpRequest): 
+def index(request: HttpRequest):
     return render(request, 'budget/index.html')
+
+
+def add_home(request: HttpRequest):
+    if request.method == 'POST':
+        form = forms.HomeCreationForm(request.POST)
+        if form.is_valid():
+            form.save()
+            home_name = form.cleaned_data.get('home_name')
+            messages.success(
+                request, f'Home "{home_name}" was successfully created')
+            return redirect('/login')
+        else:
+            return render(request, 'budget/register.html', {'form': form})
+
+    form = forms.HomeCreationForm()
+    return render(request, 'budget/register.html', {'form': form})
 
 
 @method_decorator(login_required(login_url='/login'), name='dispatch')
@@ -27,7 +42,7 @@ class UserView(UserPageView):
 
     template_name = 'budget/user.html'
 
-    redirect_name = 'user_page' 
+    redirect_name = 'user_page'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -152,17 +167,15 @@ class UserLabelsView(UserPageView):
         form = forms.AddPersonalLabelForm(post, instance=label)
 
         if form.is_valid():
-<<<<<<< HEAD
             form.save()
-=======
-            form.save() 
+
 
 class UserHomemateView(UserPageView):
 
     template_name = 'budget/home.html'
 
     redirect_name = 'user_homemates'
-    
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['form'] = UserCreationForm()
@@ -170,7 +183,7 @@ class UserHomemateView(UserPageView):
             home=self.user.account.home
         )
         print(context['accounts'])
-        return context 
+        return context
 
     def post(self, request: HttpRequest, *args, **kwargs):
         form = UserCreationForm(request.POST)
@@ -179,9 +192,10 @@ class UserHomemateView(UserPageView):
             newAccount = Account(home=account.home)
             user = form.save()
             newAccount.user = user
-            newAccount.save() 
-            messages.success(request, f'User "{user.username}" was successfully created')
-        return redirect('user_homemates') 
+            newAccount.save()
+            messages.success(
+                request, f'User "{user.username}" was successfully created')
+        return redirect('user_homemates')
 
     def add_personal_label(self, post: QueryDict):
         """Adds a new personal label to the user Account."""
@@ -192,7 +206,3 @@ class UserHomemateView(UserPageView):
 
         if form.is_valid():
             form.save()
-        
-
-        
->>>>>>> czolgisci
