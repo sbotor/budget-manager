@@ -90,7 +90,7 @@ class OpHistoryView(UserPageView):
 
         context['operations'] = Operation.objects.filter(
             account=self.user.account)
-        
+
         return context
 
     def post(self, request: HttpRequest, *args, **kwargs):
@@ -112,25 +112,27 @@ class UserLabelsView(UserPageView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        context['pers_labels'] = self.user.account.available_labels(include_home=False)
-        context['home_labels'] = self.user.account.home.get_labels(home_only=True)
-        
+        context['pers_labels'] = self.user.account.available_labels(
+            include_home=False)
+        context['home_labels'] = self.user.account.home.get_labels(
+            home_only=True)
+
         context['add_pers_label_form'] = forms.AddPersonalLabelForm()
-        
+
         return context
 
     def post(self, request: HttpRequest, *args, **kwargs):
-        
+
         if request.POST.get('add_pers_label') is not None:
             self.add_personal_label(request.POST)
-        
+
         elif request.POST.get('pers_rm_id') is not None:
             label_id = request.POST.get('pers_rm_id')
             Label.objects.get(id=label_id).delete()
-        
+
         elif request.POST.get('pers_rename_id') is not None:
             self.rename_personal_label(request.POST)
-        
+
         return redirect(self.redirect_name)
 
     def add_personal_label(self, post: QueryDict):

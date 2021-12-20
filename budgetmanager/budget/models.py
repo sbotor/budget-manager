@@ -1,7 +1,8 @@
 from django.db import models, IntegrityError
 from django.utils import timezone
 from django.contrib.auth.models import User
-from django.db.models.functions import Lower
+from django.utils.translation import gettext_lazy as _
+from django.core.validators import MaxValueValidator, MinValueValidator
 
 
 class Home(models.Model):
@@ -23,7 +24,7 @@ class Home(models.Model):
     @staticmethod
     def create_home(home_name: str, user: User):
         """The method used to create a new home and add the administrator User passed as a parameter."""
-        
+
         home = Home(name=home_name)
         admin = Account(user=user, home=home)
         try:
@@ -95,7 +96,7 @@ class Account(models.Model):
 
     def add_current(self, amount: float, commit: bool = True):
         """Used to add the specified value to the current account."""
-        
+
         self.current_amount += amount
         if commit:
             self.save()
@@ -109,16 +110,15 @@ class Account(models.Model):
 
     def available_labels(self, include_home: bool = True):
         """Returns a QuerySet of all the available labels of this Account. 
-        
+
         If `include_home` is set to False only personal labels are returned.
         """
-    
+
         if include_home:
             return Label.objects.filter(home=self.home).filter(account=self)
         else:
             return Label.objects.filter(account=self)
 
-        
 
 # This can be done like this or two separate tables can be created (one for home and the other for personal labels).
 # With separate tables there is a problem with relating labels to operations.
@@ -126,12 +126,6 @@ class Account(models.Model):
 
 class Label(models.Model):
     """Label model. Home labels do not have a value in the account field and personal labels do."""
-
-    class Meta:
-        constraints = [
-            models.UniqueConstraint(fields=['name', 'account'], name='unique_name_account'),
-            models.UniqueConstraint(fields=['name', 'home'], name='unique_name_home')
-        ]
 
     name = models.CharField(max_length=10, verbose_name='Label name')
     """Label name."""
@@ -183,6 +177,10 @@ class Operation(models.Model):
         max_length=500, null=True, blank=True, verbose_name="Optional description")
     """Optional description of the operation."""
 
+    plan = models.ForeignKey('OperationPlan', on_delete=models.SET_NULL,
+                             null=True, blank=True, verbose_name='Planned')
+    """Optional foreign key to the OperationPlan model. Present if the operation was created as a result of a plan."""
+
     def save(self, force_insert=False, force_update=False, using=None,
              update_fields=None):
         """Overriden save method to update account money during saving."""
@@ -191,7 +189,7 @@ class Operation(models.Model):
             account = self.account
             if self.final_datetime is not None:
                 account.add_current(self.amount, commit=False)
-            
+
             account.add_final(self.amount)
 
         super().save(force_insert=force_insert, force_update=force_update,
@@ -203,13 +201,13 @@ class Operation(models.Model):
         account = self.account
         if self.final_datetime is not None:
             account.add_current(-self.amount, commit=False)
-        
+
         account.add_final(-self.amount)
 
         super().delete(using=using, keep_parents=keep_parents)
 
     def __str__(self):
-        return f'{self.amount}*' if self.final_datetime is None else self.amount
+        return f'{self.amount}*' if self.final_datetime is None else str(self.amount)
 
     def finalize(self, final_dt: timezone.datetime = None):
         """Finalizes the operation setting the finalization time according to the specified parameter.
@@ -221,6 +219,40 @@ class Operation(models.Model):
                 self.final_datetime = timezone.now()
             else:
                 self.final_datetime = final_dt
-            
+
             self.save()
             self.account.add_current(self.amount)
+
+
+class OperationPlan(models.Model):
+    """Operation plan."""
+
+    class TimePeriod(models.TextChoices):
+        """Enum class for the time period."""
+
+        DAY = 'D', _('Day')
+        WEEK = 'W', _('Week')
+        MONTH = 'M', _('Month')
+        YEAR = 'Y', _('Year')
+
+    period = models.CharField(
+        max_length=1, choices=TimePeriod.choices, default=TimePeriod.WEEK, verbose_name='Time period')
+    """Time period between the operations. A new operation is created every `period_count` * period."""
+
+    period_count = models.PositiveIntegerField(validators=[MinValueValidator(1), MaxValueValidator(20)],
+                                               verbose_name='Period count')
+    """How many periods (days, weeks, months, years) should pass between a new operation."""
+
+    next_date = models.DateField(verbose_name='Next operation creation date')
+    """Next day that the new operation should be created."""
+
+    # TODO: ensure that the next_date is calculated before saving
+    def save(self, force_insert=False, force_update=False, using=None,
+             update_fields=None):
+        return super().save(force_insert=force_insert, force_update=force_update, using=using, update_fields=update_fields)
+
+    # TODO: implement next operation date calculation
+    def calculate_next(self):
+        pass
+
+    pass
