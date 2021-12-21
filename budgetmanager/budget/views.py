@@ -1,3 +1,4 @@
+from abc import ABC
 from django.http.request import HttpRequest, QueryDict
 from django.shortcuts import render, redirect
 from django.contrib import messages
@@ -14,31 +15,48 @@ def index(request: HttpRequest):
     return render(request, 'budget/index.html')
 
 
-def add_home(request: HttpRequest):
-    if request.method == 'POST':
+class AddHomeView(TemplateView):
+
+    template_name = 'budget/register.html'
+
+    redirect_name = '/login'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        if context.get('form') is None:
+            context['form'] = forms.HomeCreationForm()
+
+        return context
+
+    def post(self, request: HttpRequest, *args, **kwargs):
         form = forms.HomeCreationForm(request.POST)
+
         if form.is_valid():
             form.save()
             home_name = form.cleaned_data.get('home_name')
             messages.success(
                 request, f'Home "{home_name}" was successfully created')
-            return redirect('/login')
-        else:
-            return render(request, 'budget/register.html', {'form': form})
 
-    form = forms.HomeCreationForm()
-    return render(request, 'budget/register.html', {'form': form})
+            return redirect(self.redirect_name)
+
+        else:
+            self.extra_context = {'form': form}
+
+            return render(request, self.template_name, self.get_context_data())
 
 
 @method_decorator(login_required(login_url='/login'), name='dispatch')
-class UserPageView(TemplateView):
+class BaseUserView(ABC, TemplateView):
+    """Abstract class for user-specific view inheritance."""
 
     def setup(self, request: HttpRequest, *args, **kwargs):
         self.user = request.user
         return super().setup(request, *args, **kwargs)
 
 
-class UserView(UserPageView):
+class UserView(BaseUserView):
+    """Main user page view class."""
 
     template_name = 'budget/user.html'
 
@@ -95,7 +113,8 @@ class UserView(UserPageView):
                 # TODO: Add a message for the user that the min/max amont was surpassed
 
 
-class OpHistoryView(UserPageView):
+class OpHistoryView(BaseUserView):
+    """Full operation history view class."""
 
     template_name = 'budget/history.html'
 
@@ -120,7 +139,9 @@ class OpHistoryView(UserPageView):
         return redirect(self.redirect_name)
 
 
-class UserLabelsView(UserPageView):
+class UserLabelsView(BaseUserView):
+    """View for showing and editing user-specific labels."""
+
     template_name = 'budget/user_labels.html'
 
     redirect_name = 'user_labels'
@@ -170,39 +191,34 @@ class UserLabelsView(UserPageView):
             form.save()
 
 
-class UserHomemateView(UserPageView):
+class UserHomeView(BaseUserView):
+    """Class for the user's Home view."""
 
     template_name = 'budget/home.html'
 
-    redirect_name = 'user_homemates'
+    redirect_name = 'user_home'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        
         context['form'] = UserCreationForm()
         context['accounts'] = Account.objects.filter(
-            home=self.user.account.home
-        )
-        print(context['accounts'])
+            home=self.user.account.home)
+        
         return context
 
     def post(self, request: HttpRequest, *args, **kwargs):
         form = UserCreationForm(request.POST)
         if form.is_valid():
-            account = request.user.account
-            newAccount = Account(home=account.home)
+
+            home = request.user.account.home
+            account = Account(home=home)
             user = form.save()
-            newAccount.user = user
-            newAccount.save()
+
+            account.user = user
+            account.save()
+
             messages.success(
                 request, f'User "{user.username}" was successfully created')
-        return redirect('user_homemates')
 
-    def add_personal_label(self, post: QueryDict):
-        """Adds a new personal label to the user Account."""
-
-        label = Label(home=self.user.account.home,
-                      account=self.user.account)
-        form = forms.AddPersonalLabelForm(post, instance=label)
-
-        if form.is_valid():
-            form.save()
+        return redirect(self.redirect_name)

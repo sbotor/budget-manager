@@ -6,7 +6,7 @@ urlpatterns = [
     path('user', views.UserView.as_view(), name='user_page'),
     path('user/history', views.OpHistoryView.as_view(), name='user_history'),
     path('user/labels', views.UserLabelsView.as_view(), name="user_labels"),
-    path('home', views.UserHomemateView.as_view(), name="user_homemates"),
+    path('home', views.UserHomeView.as_view(), name="user_home"),
 
-    path('new/', views.add_home, name='new_home'),
+    path('new/', views.AddHomeView.as_view(), name='new_home'),
 ]
