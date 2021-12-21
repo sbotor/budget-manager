@@ -43,54 +43,80 @@
         </form>
     </div>
 
-    <div class="row mb-1 border-bottom border-dark">
-        <div class="col-3"><b>Label name</b></div>
-        <div class="col-auto"><b>Actions</b></div>
-    </div>
 
-    {% for label in pers_labels %}
-    <div class="row mb-1">
-        <div class="col-3">
-            {{ label.name }}
+    <div class="container">
+        <div class="row mb-1 border-bottom border-dark">
+            <div class="col-4"><b>Label name</b></div>
+            <div class="col-auto"><b>Actions</b></div>
         </div>
-        <div class="col-1">
-            <button class="btn btn-outline-secondary" data-bs-toggle="modal"
-                data-bs-target="#renamePersLabelModal{{ forloop.counter }}">Rename</button>
-        </div>
-    
-        <form method="POST" class="col-1"> {% csrf_token %}
-            <button type="submit" class='btn btn-danger' name="pers_rm_id" value="{{ label.id }}">Remove</button>   
-        </form>
+        {% for label in pers_labels %}
+        <div class="row mb-1">
+            <div class="col-4">
+                {{ label.name }}
+            </div>
+            <div class="col-auto">
+                <button class="btn btn-outline-secondary" data-bs-toggle="modal"
+                    data-bs-target="#renamePersLabelModal{{ forloop.counter }}">Rename</button>
+            </div>
+        
+            <div class="col-auto">
+                <button class='btn btn-danger' name="pers_rm_id" data-bs-toggle="modal"
+                    data-bs-target="#removeLabel{{ forloop.counter }}">Remove</button>   
+            </div>
 
-        <!--Rename modal-->
-        <form method="POST"> {% csrf_token %}
-            <div class="modal fade" id="renamePersLabelModal{{ forloop.counter }}" data-bs-backdrop="static" data-bs-keyboard="false"
-            tab-index="-1" aria-labelledby="renamePersLabelModalLabel{{ forloop.counter }}" aria-hidden="true">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="renamePersLabelModalLabel{{ forloop.counter }}">Rename label "{{ label.name }}"</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                        {{ add_pers_label_form|crispy }}
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-danger" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-primary" name="pers_rename_id"
-                            value="{{ label.id }}">Rename</button>
+            <!--Rename modal-->
+            <form method="POST" class="p-0"> {% csrf_token %}
+                <div class="modal fade" id="renamePersLabelModal{{ forloop.counter }}" data-bs-backdrop="static" data-bs-keyboard="false"
+                tab-index="-1" aria-labelledby="renamePersLabelModalLabel{{ forloop.counter }}" aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="renamePersLabelModalLabel{{ forloop.counter }}">Rename label "{{ label.name }}"</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                {{ add_pers_label_form|crispy }}
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-danger" data-bs-dismiss="modal">Cancel</button>
+                                <button type="submit" class="btn btn-primary" name="pers_rename_id"
+                                    value="{{ label.id }}">Rename</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </div>
+            </form>
+
+            <!--Remove modal-->
+            <form method="POST" class="p-0"> {% csrf_token %}
+                <div class="modal fade" id="removeLabel{{ forloop.counter }}" data-bs-backdrop="static" data-bs-keyboard="false"
+                tab-index="-1" aria-labelledby="removeLabelHeader" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="removeLabelHeader">Remove label</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                Do you really want to remove the label '{{label.name}}'?
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-outline-danger" data-bs-dismiss="modal">Cancel</button>
+                                <button type="submit" class="btn btn-danger" name="pers_rm_id" value="{{ label.id }}">Remove</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+            
         </div>
-        </form>
-        
+        {% empty %}
+        <div class="row mb-1">
+            <div class='col-6'>No labels</div>
+        </div>
+        {% endfor %}
     </div>
-    {% empty %}
-    <div class="row mb-1">
-        <div class='col-6'>No labels</div>
-    </div>
-    {% endfor %}
+
 
     <div class="row">
         <div class="col-3">
@@ -109,32 +135,64 @@
             {{ label.name }}
         </div>
 
-        <form method="POST" class="col-1"> {% csrf_token %}
-            <button type="submit" class='btn btn-danger' name="home_rm_id" value="{{ label.id }}">Remove</button>   
-        </form>
+        <div class="col-auto">
+            <button class="btn btn-outline-secondary" data-bs-toggle="modal"
+                data-bs-target="#renameHomeLabelModal{{ forloop.counter }}">Rename</button>
+        </div>
 
         <!--Rename modal-->
         <form method="POST"> {% csrf_token %}
             <div class="modal fade" id="renameHomeLabelModal{{ forloop.counter }}" data-bs-backdrop="static" data-bs-keyboard="false"
             tab-index="-1" aria-labelledby="renameHomeLabelModalLabel{{ forloop.counter }}" aria-hidden="true">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="renameHomeLabelModalLabel{{ forloop.counter }}">Rename label "{{ label.name }}"</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                        {{ add_pers_label_form|crispy }}
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-danger" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-primary" name="pers_rename_id"
-                            value="{{ label.id }}">Rename</button>
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="renameHomeLabelModalLabel{{ forloop.counter }}">Rename label "{{ label.name }}"</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            {{ add_pers_label_form|crispy }}
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-danger" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-primary" name="pers_rename_id"
+                                value="{{ label.id }}">Rename</button>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
         </form>
+    
+        <!--TODO: Only admins can see this button
+        <div class="col-auto">
+            <button class='btn btn-danger' name="pers_rm_id" data-bs-toggle="modal"
+                data-bs-target="#removeHomeLabel{{ forloop.counter }}">Remove</button>   
+        </div>
+        -->
+
+        <!--Remove modal-->
+        <!--TODO: only admins can remove home labels
+        <form method="POST" class="p-0"> {% csrf_token %}
+            <div class="modal fade" id="removeHomeLabel{{ forloop.counter }}" data-bs-backdrop="static" data-bs-keyboard="false"
+            tab-index="-1" aria-labelledby="removeHomeLabelHeader" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="removeHomeLabelHeader">Remove label</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            Do you really want to remove the label '{{label.name}}'?
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-outline-danger" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-danger" name="home_rm_id" value="{{ label.id }}">Remove</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </form>
+        -->
     </div>
     {% empty %}
     <div class="row mb-1">

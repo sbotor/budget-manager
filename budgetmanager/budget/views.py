@@ -160,6 +160,8 @@ class UserLabelsView(BaseUserView):
 
     def post(self, request: HttpRequest, *args, **kwargs):
 
+        #TODO: Ckeck if the new or renamed lable already exists in personal labels or in Home labels
+         
         if request.POST.get('add_pers_label') is not None:
             self.add_personal_label(request.POST)
 
