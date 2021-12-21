@@ -43,11 +43,20 @@ class Home(models.Model):
             return None
 
     def get_labels(self, home_only: bool = False):
+        """Return all the labels available to the Home. 
+
+        If `home_only` is False no personal labels are returned.
+        """
+
         queryset = Label.objects.filter(home=self)
         if home_only:
             queryset = queryset.filter(account=None)
 
         return queryset
+
+    # TODO
+    def add_label(self, label: 'Label', commit: bool = True):
+        pass
 
 
 class Account(models.Model):
@@ -95,19 +104,29 @@ class Account(models.Model):
 
         return total
 
-    def add_current(self, amount: float, commit: bool = True):
-        """Used to add the specified value to the current account."""
+    def add_to_current(self, amount: float, commit: bool = True):
+        """Used to add the specified value to the current account. Return the new `current_amount`.
+
+        If `commit` is False the Account is not saved to the database.
+        """
 
         self.current_amount += amount
         if commit:
             self.save()
 
-    def add_final(self, amount: float, commit: bool = True):
-        """Used to add the specified value to the final account."""
+        return self.current_amount
+
+    def add_to_final(self, amount: float, commit: bool = True):
+        """Used to add the specified value to the final account. Return the new `final_amount`.
+
+        If `commit` is False the Account is not saved to the database.
+        """
 
         self.final_amount += amount
         if commit:
             self.save()
+
+        return self.final_amount
 
     def available_labels(self, include_home: bool = True):
         """Returns a QuerySet of all the available labels of this Account. 
@@ -120,9 +139,30 @@ class Account(models.Model):
         else:
             return Label.objects.filter(account=self)
 
+    def add_operation(self, operation: 'Operation', commit: bool = True):
+        """Add an operation to the account. Returns the newly added Operation.
 
-# This can be done like this or two separate tables can be created (one for home and the other for personal labels).
-# With separate tables there is a problem with relating labels to operations.
+        If `commit` is False the Account is not saved to the database.
+        """
+
+        operation.account = self
+        if commit:
+            operation.save()
+
+        return operation
+
+    def add_label(self, label: 'Label', commit: bool = True):
+        """Add a new personal label to the database. Returns the newly added Label.
+
+        If `commit` is False the Account is not saved to the database.
+        """
+
+        label.account = self
+        label.home = self.home
+        if commit:
+            label.save()
+
+        return label
 
 
 class Label(models.Model):
@@ -146,9 +186,19 @@ class Label(models.Model):
     def __str__(self):
         return f'[H] {self.name}' if self.account is None else self.name
 
+    def rename(self, new_name: str, commit: bool = True):
+        """Renames the label.
+        
+        If `commit` is False the Label is not saved to the database.
+        """
+
+        self.name = new_name
+        if commit:
+            self.save()
+
 
 class BaseOperation(models.Model):
-    """Abstract operation model."""
+    """Abstract base operation model."""
 
     class Meta:
         abstract = True
@@ -196,9 +246,9 @@ class Operation(BaseOperation):
         if self._state.adding:
             account = self.account
             if self.final_date is not None:
-                account.add_current(self.amount, commit=False)
+                account.add_to_current(self.amount, commit=False)
 
-            account.add_final(self.amount)
+            account.add_to_final(self.amount)
 
         super().save(force_insert=force_insert, force_update=force_update,
                      using=using, update_fields=update_fields)
@@ -208,9 +258,9 @@ class Operation(BaseOperation):
 
         account = self.account
         if self.final_date is not None:
-            account.add_current(-self.amount, commit=False)
+            account.add_to_current(-self.amount, commit=False)
 
-        account.add_final(-self.amount)
+        account.add_to_final(-self.amount)
 
         super().delete(using=using, keep_parents=keep_parents)
 
@@ -229,7 +279,7 @@ class Operation(BaseOperation):
                 self.final_date = final_date
 
             self.save()
-            self.account.add_current(self.amount)
+            self.account.add_to_current(self.amount)
 
 
 class OperationPlan(BaseOperation):
@@ -282,7 +332,7 @@ class OperationPlan(BaseOperation):
         return next_date
 
     def create_operation(self, commit: bool = True):
-        """Creates a new Operation object in the database according to this plan. Returns the created Operation"""
+        """Creates a new Operation object in the database according to this plan. Returns the created Operation."""
 
         op = Operation(account=self.account,
                        label=self.label,
@@ -290,7 +340,9 @@ class OperationPlan(BaseOperation):
                        description=self.description,
                        plan=self)
 
-        op.save()
+        if commit:
+            op.save()
+
         self.next_date = self.calculate_next()
         self.save()
 

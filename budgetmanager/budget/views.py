@@ -17,7 +17,7 @@ def index(request: HttpRequest):
 
 class AddHomeView(TemplateView):
 
-    template_name = 'budget/register.html'
+    template_name = 'budget/new_home.html'
 
     redirect_name = '/login'
 
@@ -84,33 +84,18 @@ class UserView(BaseUserView):
         if post.get('rm_id') is not None:  # Remove an operation
             op_id = post.get('rm_id')
             Operation.objects.get(id=op_id).delete()
+        
         elif post.get('fin_id') is not None:  # Finalize an operation
             op_id = post.get('fin_id')
             Operation.objects.get(id=op_id).finalize()
+        
         elif post.get('add_operation') is not None:  # Add a new operation
-            self.add_operation(post)
+            form = forms.AddOperationForm(post)
+            if form.is_valid():
+                op = form.save(commit=False)
+                self.user.account.add_operation(operation=op)
 
         return redirect(self.redirect_name)
-
-    def add_operation(self, post: QueryDict):
-        """Adds a new operation to the user Account."""
-
-        op = Operation(account=self.user.account)
-        form = forms.AddOperationForm(post, instance=op)
-
-        if form.is_valid():  # Create a new operation
-            data = form.cleaned_data
-
-            # Check if final or current amount isn't surpassing the limitations
-            # Reply: Shouldn't the database take care of it? Raise an error for example.
-            #   This can be put into an overriden form method
-            added_amount = data.get('amount')
-            final_money = self.user.account.final_amount
-            if(abs(final_money + added_amount) < 1000000):
-                form.save()
-            else:
-                messages.error('Too much $$$')
-                # TODO: Add a message for the user that the min/max amont was surpassed
 
 
 class OpHistoryView(BaseUserView):
@@ -160,35 +145,26 @@ class UserLabelsView(BaseUserView):
 
     def post(self, request: HttpRequest, *args, **kwargs):
 
-        if request.POST.get('add_pers_label') is not None:
-            self.add_personal_label(request.POST)
+        post = request.POST
 
-        elif request.POST.get('pers_rm_id') is not None:
-            label_id = request.POST.get('pers_rm_id')
+        if post.get('add_pers_label') is not None:
+            form = forms.AddPersonalLabelForm(post)
+            if form.is_valid():
+                label = form.save(commit=False)
+                self.user.account.add_label(label=label)
+
+        elif post.get('pers_rm_id') is not None:
+            label_id = post.get('pers_rm_id')
             Label.objects.get(id=label_id).delete()
 
-        elif request.POST.get('pers_rename_id') is not None:
-            self.rename_personal_label(request.POST)
+        elif post.get('pers_rename_id') is not None:
+            form = forms.AddPersonalLabelForm(post)
+            if form.is_valid():
+                label_id = post.get('pers_rename_id')
+                label = Label.objects.get(id=label_id)
+                label.rename(new_name=form.cleaned_data.get('name'))
 
         return redirect(self.redirect_name)
-
-    def add_personal_label(self, post: QueryDict):
-        """Adds a new personal label to the user Account."""
-
-        label = Label(home=self.user.account.home,
-                      account=self.user.account)
-        form = forms.AddPersonalLabelForm(post, instance=label)
-
-        if form.is_valid():
-            form.save()
-
-    def rename_personal_label(self, post: QueryDict):
-        label_id = post.get('pers_rename_id')
-        label = Label.objects.get(id=label_id)
-        form = forms.AddPersonalLabelForm(post, instance=label)
-
-        if form.is_valid():
-            form.save()
 
 
 class UserHomeView(BaseUserView):
