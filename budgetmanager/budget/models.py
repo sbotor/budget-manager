@@ -267,16 +267,16 @@ class Operation(BaseOperation):
     def __str__(self):
         return f'{self.amount}*' if self.final_date is None else str(self.amount)
 
-    def finalize(self, final_date: timezone.datetime = None):
+    def finalize(self, final_datetime: timezone.datetime = None):
         """Finalizes the operation setting the finalization time according to the specified parameter.
         If no argument is passed it uses the current date.
         """
 
         if self.final_date is None:
-            if final_date is None:
-                self.final_date = timezone.now()
+            if final_datetime is None:
+                self.final_date = timezone.now().date()
             else:
-                self.final_date = final_date
+                self.final_date = final_datetime.date()
 
             self.save()
             self.account.add_to_current(self.amount)
