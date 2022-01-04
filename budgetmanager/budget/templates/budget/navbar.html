@@ -1,0 +1,33 @@
+<nav class="navbar navbar-expand-md navbar-dark mb-5 bg-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="/">Budget</a>
+
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarToggle"
+            aria-controls="navbarToggle" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse" id="navbarToggle">
+            <ul class="navbar-nav ms-auto">
+                {% if not user.is_authenticated %}
+                <li class="nav-item mx-1">
+                    <a class="btn btn-outline-primary nav-link" href="/new">Create a home</a>
+                </li>
+                <li class="nav-item mx-1">
+                    <a class="btn btn-outline-success nav-link" type="button" href="/login">Login</a>
+                </li>
+                {% else %}
+                <li class="nav-item">
+                    <a class=nav-link href='/home'>{{ user.account.home.name }}</a>
+                </li>
+                <li class="nav-item">
+                    <a class=nav-link href='/user'>{{ user.username }}</a>
+                </li>
+                <li class="nav-item ms-5">
+                    <a class="btn btn-outline-danger nav-link" href="/logout">Logout</a>
+                </li>
+                {% endif %}
+            </ul>
+        </div>
+    </div>
+</nav>

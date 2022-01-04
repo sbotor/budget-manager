@@ -1,0 +1,19 @@
+{% extends 'budget/base.html' %}
+{% load crispy_forms_filters %}
+
+{% block title %}Your labels{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-auto">
+            <a href="/user" class="btn btn-outline-primary mb-3">Back to profile</a>
+        </div>
+    </div>
+
+    {% include 'budget/user/user_labels_list.html' %}
+
+    {% include 'budget/user/home_labels_list.html' %}
+    
+</div>
+{% endblock %}}

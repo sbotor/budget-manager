@@ -17,7 +17,7 @@ def index(request: HttpRequest):
 
 class AddHomeView(TemplateView):
 
-    template_name = 'budget/new_home.html'
+    template_name = 'registration/new_home.html'
 
     redirect_name = '/login'
 
@@ -58,7 +58,7 @@ class BaseUserView(ABC, TemplateView):
 class UserView(BaseUserView):
     """Main user page view class."""
 
-    template_name = 'budget/user.html'
+    template_name = 'budget/user/user.html'
 
     redirect_name = 'user_page'
 
@@ -101,7 +101,7 @@ class UserView(BaseUserView):
 class OpHistoryView(BaseUserView):
     """Full operation history view class."""
 
-    template_name = 'budget/history.html'
+    template_name = 'budget/user/history.html'
 
     redirect_name = 'user_history'
 
@@ -127,7 +127,7 @@ class OpHistoryView(BaseUserView):
 class UserLabelsView(BaseUserView):
     """View for showing and editing user-specific labels."""
 
-    template_name = 'budget/user_labels.html'
+    template_name = 'budget/user/labels.html'
 
     redirect_name = 'user_labels'
 
@@ -170,7 +170,7 @@ class UserLabelsView(BaseUserView):
 class UserHomeView(BaseUserView):
     """Class for the user's Home view."""
 
-    template_name = 'budget/home.html'
+    template_name = 'budget/home/home.html'
 
     redirect_name = 'user_home'
 
