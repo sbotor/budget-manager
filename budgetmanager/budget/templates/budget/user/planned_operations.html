@@ -1,9 +1,43 @@
 {% extends 'budget/base.html' %}
+{% load crispy_forms_filters %}
 
 {% block title %}Planned operations{% endblock %}
 
 {% block content %}
 
-<h1>Under construction.</h1>
+<div class="row">
+    <div class="col-3">
+        <h3>Your planned operations:</h3>
+    </div>
+
+    <div class="col-auto">
+        <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#newCyclicOpModal">Plan new</button>
+    </div>
+
+    <!--New cyclic operation modal-->
+    <form method="POST"> {% csrf_token %}
+        <div class="modal fade" id="newCyclicOpModal" data-bs-backdrop="static" data-bs-keyboard="false" tab-index="-1"
+            aria-labelledby="newCyclicOpLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="newCyclicOpLabel">New cyclic operation</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        {{ add_cyclic_op_form|crispy }}
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-danger" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary" name="add_cyclic_op">Plan</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+
+{% include 'budget/user/planned_operations_list.html' %}
 
 {% endblock %}

@@ -207,3 +207,31 @@ class CyclicOperationsView(BaseUserView):
     template_name = 'budget/user/planned_operations.html'
 
     redirect_name = 'planned_operations'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        context['operations'] = OperationPlan.objects.filter(account=self.user.account)
+
+        form = forms.PlanCyclicOperationForm()
+        form.update_label_choices(self.user)
+        context['add_cyclic_op_form'] = form
+
+        return context
+
+    def post(self, request: HttpRequest, *args, **kwargs):
+        """TODO"""
+        
+        post = request.POST
+
+        if post.get('rm_id') is not None:
+            op_id = post.get('rm_id')
+            OperationPlan.objects.get(id=op_id).delete()
+
+        elif post.get('add_cyclic_op') is not None:
+            form = forms.PlanCyclicOperationForm(post)
+            if form.is_valid():
+                plan = form.save(commit=False)
+                self.user.account.plan_operation(plan=plan)
+
+        return redirect(self.redirect_name)

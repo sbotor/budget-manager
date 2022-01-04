@@ -1,22 +1,27 @@
 from django import forms
 from django.contrib.auth.models import User
+from django.forms import widgets
 from .models import *
 from django.utils import timezone
 from django.contrib.auth.forms import UserCreationForm
 
+class BaseLabelForm(forms.ModelForm):
+    """TODO"""
 
-class AddOperationForm(forms.ModelForm):
+    def update_label_choices(self, user: User):
+        """TODO"""
+
+        self.fields['label'] = forms.ModelChoiceField(
+            queryset=user.account.available_labels(),
+            empty_label='No label',
+            required=False)
+
+class AddOperationForm(BaseLabelForm):
     class Meta:
         model = Operation
         fields = ['finalized', 'amount', 'description', 'label']
 
     finalized = forms.BooleanField(required=False, label='Finalized')
-
-    def update_label_choices(self, user: User):
-        self.fields['label'] = forms.ModelChoiceField(
-            queryset=user.account.available_labels(),
-            empty_label='No label',
-            required=False)
 
     def save(self, commit: bool = True):
         """Overriden method to check if the operation should be finalized and update accordingly."""
@@ -27,31 +32,16 @@ class AddOperationForm(forms.ModelForm):
         return super().save(commit=commit)
 
 
-class PlanCyclicOperationForm(forms.ModelForm):
+class PlanCyclicOperationForm(BaseLabelForm):
     """This form is used to plan a new cyclic operation."""
 
     class Meta:
         model = OperationPlan
-        fields = ['period', 'period_count', 'start_date']
+        fields = ['amount', 'label', 'period', 'period_count', 'next_date']
 
     # TODO: add a validator against a past date
-    start_date = forms.DateField(label="Starting day")
-
-    def save(self, commit: bool = True):
-        """Overriden method to calculate the next starting date."""
-
-        data = self.cleaned_data
-        if data.get('start_date') == timezone.now().date():
-            if commit:
-                self.instance.create_operation()
-            
-            self.instance.next_date = self.instance.calculate_next(
-                base_date=timezone.now().date())
-        else:
-            self.instance.next_date = self.instance.calculate_next(
-                data.get('start_date'))
-
-        return super().save(commit=commit)
+    next_date = forms.DateField(
+        label="Starting day", widget=widgets.SelectDateWidget)
 
 
 class AddPersonalLabelForm(forms.ModelForm):
@@ -75,8 +65,8 @@ class HomeCreationForm(UserCreationForm):
     def save(self, commit: bool = True):
         user = super().save(commit=True)
         home = Home.create_home(self.cleaned_data.get('home_name'), user)
-        
+
         if home is None:
             user.delete()
-        
-        return home 
+
+        return home

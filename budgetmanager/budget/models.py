@@ -151,6 +151,24 @@ class Account(models.Model):
 
         return operation
 
+    def plan_operation(self, plan: 'OperationPlan', commit: bool = True):
+        """TODO"""
+
+        plan.account = self
+        op = None
+        now = timezone.now().date()
+
+        if plan.next_date == now:
+            op = plan.create_operation(commit=False)
+            plan.next_date = plan.calculate_next(base_date=now)
+
+        if commit:
+            plan.save()
+            if op is not None:
+                op.save()
+
+        return (plan, op)
+
     def add_label(self, label: 'Label', commit: bool = True):
         """Add a new personal label to the database. Returns the newly added Label.
 
@@ -188,7 +206,7 @@ class Label(models.Model):
 
     def rename(self, new_name: str, commit: bool = True):
         """Renames the label.
-        
+
         If `commit` is False the Label is not saved to the database.
         """
 
@@ -342,8 +360,8 @@ class OperationPlan(BaseOperation):
 
         if commit:
             op.save()
+            self.save()
 
         self.next_date = self.calculate_next()
-        self.save()
 
         return op
