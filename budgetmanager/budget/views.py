@@ -198,3 +198,12 @@ class UserHomeView(BaseUserView):
                 request, f'User "{user.username}" was successfully created')
 
         return redirect(self.redirect_name)
+
+
+# TODO
+class CyclicOperationsView(BaseUserView):
+    """TODO"""
+
+    template_name = 'budget/user/planned_operations.html'
+
+    redirect_name = 'planned_operations'
