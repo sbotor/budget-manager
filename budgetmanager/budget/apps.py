@@ -7,9 +7,10 @@ class BudgetConfig(AppConfig):
     initialized = False
 
     def ready(self):
-        from .jobs import register_jobs
+        from .jobs import OperationPlanner
 
         if not self.initialized:
             # TODO
-            #register_jobs(8)
+            planner = OperationPlanner(thread_count=8)
+            #planner.start()
             self.initialized = True

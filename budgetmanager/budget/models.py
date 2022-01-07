@@ -366,8 +366,16 @@ class OperationPlan(BaseOperation):
                                                verbose_name='Period count')
     """How many periods (days, weeks, months, years) should pass between a new operation."""
 
-    next_date = models.DateField(verbose_name='Next operation creation date')
+    next_date = models.DateField(default=timezone.now, verbose_name='Next operation creation date')
     """Next day that the new operation should be created."""
+
+    def save(self, force_insert: bool = False, force_update: bool = False, using = None, update_fields = None):
+        """TODO"""
+        
+        if self.next_date == timezone.now().date():
+            self.create_operation()
+        
+        super().save(force_insert=force_insert, force_update=force_update, using=using, update_fields=update_fields)
 
     def calculate_next(self, base_date: date = None):
         """Calculates the next date of the operation creation.

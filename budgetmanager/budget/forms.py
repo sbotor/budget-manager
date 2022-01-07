@@ -5,6 +5,7 @@ from .models import *
 from django.utils import timezone
 from django.contrib.auth.forms import UserCreationForm
 
+
 class BaseLabelForm(forms.ModelForm):
     """TODO"""
 
@@ -15,6 +16,7 @@ class BaseLabelForm(forms.ModelForm):
             queryset=user.account.available_labels(),
             empty_label='No label',
             required=False)
+
 
 class AddOperationForm(BaseLabelForm):
     class Meta:
@@ -40,8 +42,8 @@ class PlanCyclicOperationForm(BaseLabelForm):
         fields = ['amount', 'label', 'period', 'period_count', 'next_date']
 
     # TODO: add a validator against a past date
-    next_date = forms.DateField(
-        label="Starting day", widget=widgets.SelectDateWidget)
+    next_date = forms.DateField(required=False,
+                                label="Starting day", widget=widgets.SelectDateWidget)
 
 
 class AddPersonalLabelForm(forms.ModelForm):

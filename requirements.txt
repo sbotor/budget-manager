@@ -10,3 +10,6 @@ crispy-bootstrap5
 
 # Task scheduling
 schedule
+
+# Freezegun for datetime freezing in testing
+freezegun
