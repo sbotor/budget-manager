@@ -298,7 +298,7 @@ class Operation(BaseOperation):
     """
 
     final_date = models.DateField(
-        null=True, verbose_name='Time finalized')
+        null=True, blank=True, verbose_name='Time finalized')
     """Finalization date and time of the operation. If present it means that the operation is finalized."""
 
     plan = models.ForeignKey('OperationPlan', on_delete=models.SET_NULL,
@@ -367,8 +367,14 @@ class OperationPlan(BaseOperation):
                                                verbose_name='Period count')
     """How many periods (days, weeks, months, years) should pass between a new operation."""
 
-    next_date = models.DateField(default=timezone.now().date, verbose_name='Next operation creation date')
+    next_date = models.DateField(default='_timezone_now_date_wrapper', verbose_name='Next operation creation date')
     """Next day that the new operation should be created."""
+
+    @staticmethod
+    def _timezone_now_date_wrapper():
+        """TODO"""
+
+        return timezone.now().date()
 
     def save(self, force_insert: bool = False, force_update: bool = False, using = None, update_fields = None):
         """TODO"""
@@ -376,10 +382,13 @@ class OperationPlan(BaseOperation):
         if isinstance(self.next_date, timezone.datetime):
             self.next_date = self.next_date.date()
         
-        if self.next_date <= timezone.now().date():
-            self.create_operation()
+        op = None
+        while self.is_due():
+            op = self.create_operation(commit=False)
         
-        super().save(force_insert=force_insert, force_update=force_update, using=using, update_fields=update_fields)
+            super().save(force_insert=force_insert, force_update=force_update, using=using, update_fields=update_fields)
+            if op is not None:
+                op.save()
 
     def calculate_next(self, base_date: date = None):
         """Calculates the next date of the operation creation.
@@ -427,3 +436,7 @@ class OperationPlan(BaseOperation):
 
         return op
 
+    def is_due(self):
+        """TODO"""
+
+        return self.next_date <= timezone.now().date()

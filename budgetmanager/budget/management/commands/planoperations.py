@@ -13,9 +13,9 @@ class Command(BaseCommand):
 
         for plan in qset:
             try:
-                #print(plan.next_date)
-                plan.create_operation()
-                counter += 1
+                while plan.is_due():
+                    plan.create_operation()
+                    counter += 1
             except:
                 self.stderr.write(self.style.ERROR(f'Error creating operation from plan id: {plan.id}.'))
 
