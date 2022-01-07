@@ -1,5 +1,7 @@
 from datetime import date, timedelta
+from typing import Iterable
 from django.db import models, IntegrityError
+from django.db.models.query_utils import Q
 from django.utils import timezone
 from django.contrib.auth.models import User
 from django.utils.translation import gettext_lazy as _
@@ -32,7 +34,10 @@ class Home(models.Model):
             home.save()
             admin.save()
             home.admin = admin
+            
+            home._create_predefined_labels()
             home.save()
+
             return home
         except IntegrityError:
             # Clean up and return None
@@ -43,7 +48,7 @@ class Home(models.Model):
             return None
 
     def get_labels(self, home_only: bool = False):
-        """Return all the labels available to the Home. 
+        """Return all the labels available to the Home excluding global labels.
 
         If `home_only` is False no personal labels are returned.
         """
@@ -56,7 +61,23 @@ class Home(models.Model):
 
     # TODO
     def add_label(self, label: 'Label', commit: bool = True):
-        pass
+        """Add a new personal home to the database. Returns the newly added Label.
+
+        If `commit` is False the label is not saved to the database.
+        """
+
+        label.account = None
+        label.home = self
+        if commit:
+            label.save()
+
+        return label
+
+    def _create_predefined_labels(self):
+        """TODO"""
+
+        for name in Label.DEFAULT_LABELS:
+            Label(name=name, home=self).save()
 
 
 class Account(models.Model):
@@ -172,7 +193,7 @@ class Account(models.Model):
     def add_label(self, label: 'Label', commit: bool = True):
         """Add a new personal label to the database. Returns the newly added Label.
 
-        If `commit` is False the Account is not saved to the database.
+        If `commit` is False the label is not saved to the database.
         """
 
         label.account = self
@@ -184,15 +205,15 @@ class Account(models.Model):
 
 
 class Label(models.Model):
-    """Label model. Home labels do not have a value in the account field and personal labels do."""
+    """Label model. Home labels do not have a value in the account field and personal labels do. Global labels have neither."""
 
     name = models.CharField(max_length=10, verbose_name='Label name')
     """Label name."""
 
     home = models.ForeignKey(
-        Home, on_delete=models.CASCADE, verbose_name='Home')
+        Home, on_delete=models.CASCADE, null=True, verbose_name='Home')
     """Home which the label belong to.
-    It should be set even if the label is a personal label.
+    It should be set even if the label is a personal label. If None then the label is global.
     """
 
     account = models.ForeignKey(
@@ -201,8 +222,19 @@ class Label(models.Model):
     It must be empty for a home label.
     """
 
+    # TODO
+    DEFAULT_LABELS = ()
+    """TODO"""
+
     def __str__(self):
-        return f'[H] {self.name}' if self.account is None else self.name
+        prefix = ''
+        if self.account is None:
+            if self.home is not None:
+                prefix = '[H] '
+            else:
+                prefix = '[G] '
+
+        return prefix + self.name
 
     def rename(self, new_name: str, commit: bool = True):
         """Renames the label.
@@ -213,6 +245,21 @@ class Label(models.Model):
         self.name = new_name
         if commit:
             self.save()
+
+    @staticmethod
+    def get_global(names: Iterable[str] = None):
+        """TODO"""
+        
+        qset = Label.objects.filter(home=None)
+        q = Q()
+
+        if names:
+            for name in names:
+                q = q | Q(label__name=name)
+            return qset.filter(q)
+        else:
+            return qset
+
 
 
 class BaseOperation(models.Model):
@@ -365,3 +412,8 @@ class OperationPlan(BaseOperation):
         self.next_date = self.calculate_next()
 
         return op
+
+    def is_due(self):
+        """Checks if the plan's next date is today."""
+
+        return self.next_date == timezone.now().date()
