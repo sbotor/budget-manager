@@ -1,4 +1,5 @@
 from datetime import date, timedelta
+from os import error
 from typing import Iterable
 from django.db import models, IntegrityError
 from django.db.models.query_utils import Q
@@ -366,13 +367,16 @@ class OperationPlan(BaseOperation):
                                                verbose_name='Period count')
     """How many periods (days, weeks, months, years) should pass between a new operation."""
 
-    next_date = models.DateField(default=timezone.now, verbose_name='Next operation creation date')
+    next_date = models.DateField(default=timezone.now().date, verbose_name='Next operation creation date')
     """Next day that the new operation should be created."""
 
     def save(self, force_insert: bool = False, force_update: bool = False, using = None, update_fields = None):
         """TODO"""
+
+        if isinstance(self.next_date, timezone.datetime):
+            self.next_date = self.next_date.date()
         
-        if self.next_date == timezone.now().date():
+        if self.next_date <= timezone.now().date():
             self.create_operation()
         
         super().save(force_insert=force_insert, force_update=force_update, using=using, update_fields=update_fields)
@@ -413,15 +417,13 @@ class OperationPlan(BaseOperation):
                        description=self.description,
                        plan=self)
 
+        #print(f'Operation {op} created.')
+
+        self.next_date = self.calculate_next()
+
         if commit:
             op.save()
             self.save()
 
-        self.next_date = self.calculate_next()
-
         return op
 
-    def is_due(self):
-        """Checks if the plan's next date is today."""
-
-        return self.next_date == timezone.now().date()
