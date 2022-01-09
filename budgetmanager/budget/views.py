@@ -71,12 +71,8 @@ class UserView(BaseUserView):
         context['final_amount'] = self.user.account.final_amount
         context['current_amount'] = self.user.account.current_amount
         
-        income = [3,2,1,6,3,6,8,23,5,37,1,15]
-        context['income'] = income
-
-        #Something like this in the furure: ?
-        #context['income'] = self.user.account.get_last_year_income()
-        #context['expenses'] = self.user.account.get_last_year_expenses()
+        context['income'] = self.user.account.get_last_year_income()
+        context['expenses'] = self.user.account.get_last_year_expenses()
 
         add_op_form = forms.AddOperationForm()
         add_op_form.update_label_choices(self.user)
