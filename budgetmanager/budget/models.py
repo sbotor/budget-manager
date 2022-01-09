@@ -4,13 +4,19 @@ from typing import Iterable
 from django.db import models, IntegrityError
 from django.db.models.query_utils import Q
 from django.utils import timezone
-from django.contrib.auth.models import User
+from django.contrib.auth.models import Permission, Group, User
 from django.utils.translation import gettext_lazy as _
 from django.core.validators import MaxValueValidator, MinValueValidator
 
-
 class Home(models.Model):
     """Home model used for account grouping."""
+
+    class Meta:
+        permissions = {
+            ('manage_home', 'Can manage the entire Home.'),
+            ('make_home_admin', 'Can make a user a home admin.'),
+            ('make_mod', 'Can make a user a moderator.'),
+        }
 
     name = models.CharField(max_length=50, verbose_name='Home name')
     """Home name."""
@@ -21,6 +27,9 @@ class Home(models.Model):
     Null value is possible, but should only occur during home creation.
     It has no backward relation to the Home object as it can be obtained via the regular Account.home field.
     """
+
+    ADMIN = 'home_admin'
+    MOD = 'moderator'
 
     def __str__(self):
         return self.name
@@ -33,9 +42,9 @@ class Home(models.Model):
         admin = Account(user=user, home=home)
         try:
             home.save()
-            admin.save()
-            home.admin = admin
-            
+            home.change_admin(admin)
+            print(home.admin)
+
             home._create_predefined_labels()
             home.save()
 
@@ -80,9 +89,80 @@ class Home(models.Model):
         for name in Label.DEFAULT_LABELS:
             Label(name=name, home=self).save()
 
+    def change_admin(self, account: 'Account'):
+        """TODO"""
+
+        group, created = Group.objects.get_or_create(name=Home.ADMIN)
+        if created:
+            Home._setup_admin_group(group)
+
+        prev_admin = self.admin
+        if prev_admin:
+            prev_admin.user.groups.remove(group)
+            prev_admin.user.save()
+            self.admin = None
+            self.save()
+
+        account.user.groups.add(group)
+        self.add_mod(account, commit=False)
+        account.user.save()
+        account.save()
+
+        self.admin = account
+        self.save()
+
+    def add_mod(self, account: 'Account', commit: bool = True):
+        """TODO"""
+        
+        group, created = Group.objects.get_or_create(name=Home.MOD)
+        if created:
+            Home._setup_mod_group(group)
+
+        account.user.groups.add(group)
+
+        if commit:
+            account.user.save()
+
+    # TODO
+    def remove_mod(self, account: 'Account', commit: bool = True):
+        """TODO"""
+        pass
+
+    # TODO
+    @staticmethod
+    def _setup_admin_group(group: Group):
+        admin_perms = {
+            Permission.objects.get(codename='manage_home'),
+            Permission.objects.get(codename='make_home_admin'),
+            
+            Permission.objects.get(codename='manage_users'),
+        }
+
+        group.permissions.add(*admin_perms)
+        group.save()
+
+    # TODO
+    @staticmethod
+    def _setup_mod_group(group: Group):
+        mod_perms = {
+            Permission.objects.get(codename='make_mod'),
+            Permission.objects.get(codename='see_other_accounts'),
+            Permission.objects.get(codename='add_home_label'),
+            Permission.objects.get(codename='make_transaction'),
+            Permission.objects.get(codename='plan_for_others')
+        }
+
+        group.permissions.add(*mod_perms)
+        group.save()
 
 class Account(models.Model):
     """The model of the user account."""
+
+    class Meta:
+        permissions = {
+            ('manage_users', 'Can manage user accounts.'),
+            ('see_other_accounts', 'Can see other users\' accounts.'),
+        }
 
     user = models.OneToOneField(
         User, on_delete=models.CASCADE, verbose_name="User")
@@ -204,9 +284,13 @@ class Account(models.Model):
 
         return label
 
-
 class Label(models.Model):
     """Label model. Home labels do not have a value in the account field and personal labels do. Global labels have neither."""
+
+    class Meta:
+        permissions = {
+            ('add_home_label', 'Can create or delete home labels.')
+        }
 
     name = models.CharField(max_length=10, verbose_name='Label name')
     """Label name."""
@@ -250,7 +334,7 @@ class Label(models.Model):
     @staticmethod
     def get_global(names: Iterable[str] = None):
         """TODO"""
-        
+
         qset = Label.objects.filter(home=None)
         q = Q()
 
@@ -260,7 +344,6 @@ class Label(models.Model):
             return qset.filter(q)
         else:
             return qset
-
 
 
 class BaseOperation(models.Model):
@@ -290,6 +373,11 @@ class BaseOperation(models.Model):
 
 class Operation(BaseOperation):
     """Operation model. If the operation does not have a `final_date` then it is not finalized."""
+
+    class Meta:
+        permissions = {
+            ('make_transaction', 'Can make an internal transaction to another user.')
+        }
 
     creation_date = models.DateField(
         auto_now_add=True, verbose_name='Time created')
@@ -351,6 +439,11 @@ class Operation(BaseOperation):
 class OperationPlan(BaseOperation):
     """Operation plan."""
 
+    class Meta:
+        permissions = {
+            ('plan_for_others', 'Can make plans for another user.')
+        }
+
     class TimePeriod(models.TextChoices):
         """Enum class for the time period."""
 
@@ -367,7 +460,8 @@ class OperationPlan(BaseOperation):
                                                verbose_name='Period count')
     """How many periods (days, weeks, months, years) should pass between a new operation."""
 
-    next_date = models.DateField(default='_timezone_now_date_wrapper', verbose_name='Next operation creation date')
+    next_date = models.DateField(
+        default='_timezone_now_date_wrapper', verbose_name='Next operation creation date')
     """Next day that the new operation should be created."""
 
     @staticmethod
@@ -376,17 +470,18 @@ class OperationPlan(BaseOperation):
 
         return timezone.now().date()
 
-    def save(self, force_insert: bool = False, force_update: bool = False, using = None, update_fields = None):
+    def save(self, force_insert: bool = False, force_update: bool = False, using=None, update_fields=None):
         """TODO"""
 
         if isinstance(self.next_date, timezone.datetime):
             self.next_date = self.next_date.date()
-        
+
         op = None
         while self.is_due():
             op = self.create_operation(commit=False)
-        
-            super().save(force_insert=force_insert, force_update=force_update, using=using, update_fields=update_fields)
+
+            super().save(force_insert=force_insert, force_update=force_update,
+                         using=using, update_fields=update_fields)
             if op is not None:
                 op.save()
 
