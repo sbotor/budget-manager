@@ -45,10 +45,16 @@
 
     <div class="container">
         <!-- Vertical bar -->
-        <canvas id="monthlyChart" height="100"></canvas>
-
+            <canvas id="monthlyChart" height="100"></canvas>
         <!-- Monthly category pie-chart -->
-        <!-- TODO -->
+        <div class="row">
+            <div class="col">
+                <canvas id="catMonthIncome" height="50"></canvas>
+            </div>
+            <div class="col">
+                <canvas id="catMonthExpenses" height="50"></canvas>
+            </div>
+        </div>
 
     </div>
 </div>
@@ -59,7 +65,7 @@
 <!-- TODO: find a way to use the external js-->
 <script>
     //Yearly Chart:
-    const ctx = document.getElementById('monthlyChart').getContext('2d');
+    const first = document.getElementById('monthlyChart').getContext('2d');
     const months = ['January', 'Febuary', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
     var dataIncome = {{ income }};
@@ -90,7 +96,7 @@
         ]
     };
 
-    const monthlyChart = new Chart(ctx, {
+    const monthlyChart = new Chart(first, {
         type: 'bar',
         data: barData,
         options: {
@@ -105,8 +111,72 @@
             }
         }
     });
+</script>
 
+<script>
         //TODO: Monthly category Pie-Chart
+
+        
+    const pieIncome = document.getElementById('catMonthIncome').getContext('2d');
+    const pieExpenses = document.getElementById('catMonthExpenses').getContext('2d');
+
+    var pieIncomeLabels = [];
+    var pieIncomeAmount = [];
+    var pieExpensesLabels = [];
+    var pieExpensesAmount = [];
+
+    var date = new Date();
+
+    {%for op in allOperations%}
+        if({{op.final_date.month}} == date.getMonth()+1)
+        {
+            if({{op.amount}} > 0)
+            {
+                if(pieIncomeLabels.indexOf('{{op.label_id}}') != -1)
+                {
+                    pieIncomeAmount[pieIncomeLabels.indexOf('{{op.label_id}}')] += {{op.amount}};
+                }
+                else
+                {
+                    pieIncomeLabels.push('{{op.label_id}}');
+                    pieIncomeAmount.push({{op.amount}});
+                }
+            }
+            else
+            {    
+                if(pieExpensesLabels.indexOf('{{op.label_id}}') != -1)
+                {
+                    pieExpensesAmount[pieExpensesLabels.indexOf('{{op.label_id}}')] -= {{op.amount}};
+                }
+                else
+                {
+                    pieExpensesLabels.push('{{op.label_id}}');
+                    var amount = {{op.amount}};
+                    amount *= -1;
+                    pieExpensesAmount.push(amount);
+                }
+            }
+        }
+
+    {%endfor%}
+
+    //TODO: get category names from category id
+
+    var pie1Data = {
+        labels: pieIncomeLabels,
+        datasets: [
+        {
+            label: 'Income by categories',
+            data: pieIncomeAmount,
+            backgroundColor: ['rgba(200, 150, 0, 1)', 'rgba(255, 0, 255, 1)'], //TODO: add colours
+        }
+        ]
+    }
+
+    const pie1 = new Chart(pieIncome, {
+        type: 'pie',
+        data: pie1Data,
+    });
 
 
 </script>
