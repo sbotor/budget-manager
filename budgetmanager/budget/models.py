@@ -7,6 +7,7 @@ from django.contrib.auth.models import Permission, Group, User
 from django.utils.translation import gettext_lazy as _
 from django.core.validators import MaxValueValidator, MinValueValidator
 
+
 class Home(models.Model):
     """Home model used for account grouping."""
 
@@ -127,12 +128,12 @@ class Home(models.Model):
 
     def remove_mod(self, account: 'Account', commit: bool = True):
         """TODO"""
-        
+
         group = Group.objects.get(name=Home.MOD_GROUP)
 
         if account.is_mod():
             account.user.groups.remove(group)
-        
+
         account.user.permissions.clear()
 
         if commit:
@@ -316,6 +317,23 @@ class Account(models.Model):
 
         return self.user.groups.filter(name=Home.MOD_GROUP).exists()
 
+    def make_transaction(self, destination: 'Account', amount: float, description: str = None):
+        """TODO"""
+
+        label = Label.get_global(name=('Internal'))
+
+        outcoming = Operation(account=self, amount=-amount,
+                              description=description, final_date=Operation.datetime_today(), label=label)
+        incoming = Operation(account=destination, amount=amount,
+                             description=description, final_date=Operation.datetime_today(), label=label)
+
+        outcoming.save()
+        incoming.source = outcoming
+        incoming.save()
+
+        return outcoming, incoming
+
+
 class Label(models.Model):
     """Label model. Home labels do not have a value in the account field and personal labels do. Global labels have neither."""
 
@@ -339,7 +357,8 @@ class Label(models.Model):
     It must be empty for a home label.
     """
 
-    is_default = models.BooleanField(default=False, blank=True, verbose_name='If the label is a default label.')
+    is_default = models.BooleanField(
+        default=False, blank=True, verbose_name='If the label is a default label.')
     """If the label is a default label."""
 
     _global_initialized = False
@@ -397,7 +416,7 @@ class Label(models.Model):
             return qset
 
     def _init_global():
-        """TODO"""
+        """Initializes global labels."""
 
         for name in Label.GLOBAL_LABELS:
             Label.objects.get_or_create(name=name, home=None, is_default=True)
@@ -455,6 +474,9 @@ class Operation(BaseOperation):
     plan = models.ForeignKey('OperationPlan', on_delete=models.SET_NULL,
                              null=True, blank=True, verbose_name='Planned')
     """Optional foreign key to the OperationPlan model. Present if the operation was created as a result of a plan."""
+
+    source = models.ForeignKey('self', on_delete=models.SET_NULL, null=True,
+                               verbose_name='Optional transaction source operation.', related_query_name='destination')
 
     def save(self, force_insert=False, force_update=False, using=None,
              update_fields=None):

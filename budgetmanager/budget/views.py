@@ -290,10 +290,10 @@ class HomeView(BaseHomeView):
 
         elif post.get('transaction') is not None:
             form = forms.TransactionForm(post)
-            target = Account.objects.get(id=post.get('transaction'))
+            destination = Account.objects.get(id=post.get('transaction'))
             valid = False
             if form.is_valid():
-                outcoming, incoming = form.make_transaction(source=self.user.account, target=target)
+                outcoming, incoming = form.make_transaction(source=self.user.account, destination=destination)
                 if outcoming and incoming:
                     valid = True
             if not valid:

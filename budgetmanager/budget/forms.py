@@ -108,21 +108,12 @@ class TransactionForm(forms.ModelForm):
         model = Operation
         fields = ['amount', 'description']
 
-    def make_transaction(self, source: Account, target: Account):
-        if source == target:
+    def make_transaction(self, source: Account, destination: Account):
+        if source == destination:
             return None, None
 
         data = self.cleaned_data
         amount = abs(data.get('amount'))
         desc = data.get('description')
-        label = Label.get_global(name=('Internal'))
-
-        outcoming = Operation(account=source, amount=-amount,
-                              description=desc, final_date=Operation.datetime_today(), label=label)
-        incoming = Operation(account=target, amount=amount,
-                             description=desc, final_date=Operation.datetime_today(), label=label)
-
-        outcoming.save()
-        incoming.save()
-
-        return outcoming, incoming
+        
+        return source.make_transaction(destination, amount, desc)
