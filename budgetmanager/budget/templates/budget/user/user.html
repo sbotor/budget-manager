@@ -41,5 +41,71 @@
     
     <a href='user/history' class="btn btn-outline-secondary">More history</a>
 
+    <div class="container">
+        <!-- Vertical bar -->
+        <canvas id="monthlyChart" height="100"></canvas>
+
+        <!-- Monthly category pie-chart -->
+        <!-- TODO -->
+        
+    </div>
 </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- I have no idea how to read from external js, tried multiple solutions, nothing worked -->
+    <!-- TODO: find a way to use the external js-->
+    <script>
+        //Yearly Chart:
+        const ctx = document.getElementById('monthlyChart').getContext('2d');
+        const months = ['January', 'Febuary', 'March', 'April','May','June','July','August','September','October','November','December'];
+        
+        var dataIncome = {{income}};
+        var dataExpenses = {{expenses}};
+
+        var barData = {
+            labels: months,
+            datasets: [
+                {
+                    label: 'Income',
+                    data: dataIncome,
+                    backgroundColor: [
+                        'rgba(0, 255, 0, 0.7)'
+                    ],
+                    //TODO: Change border of income when expenses are higher than income?
+                    //borderColor: [
+                    //    'rgba(255, 0, 0, 1)'
+                    //],
+                    //borderWidth: 3,
+                },
+                {
+                    label: 'Expenses',
+                    data: dataExpenses,
+                    backgroundColor: [
+                        'rgba(0, 0, 255, 0.7)'
+                    ],
+                }
+            ]
+        };
+
+        const monthlyChart = new Chart(ctx, {
+            type: 'bar',
+            data: barData,
+            options: {
+                plugins:{
+                    title: {
+                        text: 'Your this year\'s balance',
+                        display: true,
+                        font: {
+                            size: 16
+                        }
+                    }
+                }
+            }
+        });
+
+        //TODO: Monthly category Pie-Chart
+
+
+    </script>
 {% endblock %}

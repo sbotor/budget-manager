@@ -10,6 +10,7 @@ from django.contrib.auth.forms import UserCreationForm
 from .models import *
 from . import forms
 
+from django.core import serializers
 
 def index(request: HttpRequest):
     return render(request, 'budget/index.html')
@@ -92,6 +93,9 @@ class UserView(BaseUserView):
             account=self.user.account).order_by('-id')[:5]
         context['final_amount'] = self.user.account.final_amount
         context['current_amount'] = self.user.account.current_amount
+        
+        context['income'] = self.user.account.get_last_year_income()
+        context['expenses'] = self.user.account.get_last_year_expenses()
 
         add_op_form = forms.AddOperationForm()
         add_op_form.update_label_choices(self.user)

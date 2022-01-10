@@ -1,5 +1,4 @@
-from datetime import date, timedelta
-from typing import Iterable
+from datetime import date, datetime, timedelta
 from django.db import models, IntegrityError
 from django.db.models.query_utils import Q
 from django.utils import timezone
@@ -219,6 +218,36 @@ class Account(models.Model):
             total += float(op.amount)
 
         return total
+
+    def get_last_year_income(self):
+        operations = Operation.objects.filter(
+            account=self).exclude(final_date=None)
+
+        income = [0,0,0,0,0,0,0,0,0,0,0,0]        
+
+        for op in operations:
+            difference = timezone.now().today().year - op.final_date.year
+            if difference <= 1:
+                month = op.final_date.month
+                if op.amount > 0:
+                    income[month-1] += float(op.amount)
+
+        return income
+
+    def get_last_year_expenses(self):
+        operations = Operation.objects.filter(
+            account=self).exclude(final_date=None)
+
+        expenses = [0,0,0,0,0,0,0,0,0,0,0,0]
+
+        for op in operations:
+            difference = timezone.now().today().year - op.final_date.year
+            if timezone.now().today().year - op.final_date.year < 1 and timezone.now().today().month >= op.final_date.month:
+                month = op.final_date.month
+                if op.amount < 0:
+                    expenses[month-1] += -1*float(op.amount)
+
+        return expenses
 
     def add_to_current(self, amount: float, commit: bool = True):
         """Used to add the specified value to the current account. Return the new `current_amount`.
