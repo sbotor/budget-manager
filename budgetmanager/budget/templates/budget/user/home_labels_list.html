@@ -1,62 +1,74 @@
 {% load crispy_forms_filters %}
 
 <div class="row">
-    <div class="col-3">
+    <div class="col-4">
         <h3>Your Home labels:</h3>
     </div>
+
+    <div class="col-auto">
+        <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#newHomeLabelModal">Add new</button>
+    </div>
+    <div class="col-auto">
+        <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#defaultLabelsModal">Restore default</button>
+    </div>
+    <!--New personal label modal-->
+    {% include 'budget/user/modals/new_home_label_modal.html' %}
+    <!--Restore default labels confirmation modal-->
+    {% include 'budget/user/modals/default_labels_modal.html' %}
 </div>
 
 <div class="row mb-1 border-bottom border-dark">
-    <div class="col-3"><b>Label name</b></div>
+    <div class="col-4"><b>Label name</b></div>
     <div class="col-auto"><b>Actions</b></div>
 </div>
 
 {% for label in home_labels %}
 <div class="row mb-1">
-    <div class="col-3">
+    <div class="col-4">
         {{ label.name }}
     </div>
-
-    <div class="col-auto">
+    {% if manage_home_labels %}
+    {% if not label.is_default %}
+    <div class="col-1">
         <button class="btn btn-outline-secondary" data-bs-toggle="modal"
             data-bs-target="#renameHomeLabelModal{{ forloop.counter }}">Rename</button>
     </div>
+    {% endif %}
+    <div class="col-1">
+        <button class='btn btn-danger' name="pers_rm_id" data-bs-toggle="modal"
+            data-bs-target="#removeHomeLabel{{ forloop.counter }}">Remove</button>
+    </div>
 
+    {% if not label.is_default %}
     <!--Rename modal-->
     <form method="POST"> {% csrf_token %}
-        <div class="modal fade" id="renameHomeLabelModal{{ forloop.counter }}" data-bs-backdrop="static" data-bs-keyboard="false"
-        tab-index="-1" aria-labelledby="renameHomeLabelModalLabel{{ forloop.counter }}" aria-hidden="true">
+        <div class="modal fade" id="renameHomeLabelModal{{ forloop.counter }}" data-bs-backdrop="static"
+            data-bs-keyboard="false" tab-index="-1" aria-labelledby="renameHomeLabelModalLabel{{ forloop.counter }}"
+            aria-hidden="true">
             <div class="modal-dialog">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title" id="renameHomeLabelModalLabel{{ forloop.counter }}">Rename label "{{ label.name }}"</h5>
+                        <h5 class="modal-title" id="renameHomeLabelModalLabel{{ forloop.counter }}">Rename label
+                            "{{label.name}}"</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
-                        {{ add_pers_label_form|crispy }}
+                        {{ add_label_form|crispy }}
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-danger" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-primary" name="pers_rename_id"
+                        <button type="submit" class="btn btn-primary" name="home_rename_id"
                             value="{{ label.id }}">Rename</button>
                     </div>
                 </div>
             </div>
         </div>
     </form>
-
-    <!--TODO: Only admins can see this button
-    <div class="col-auto">
-        <button class='btn btn-danger' name="pers_rm_id" data-bs-toggle="modal"
-            data-bs-target="#removeHomeLabel{{ forloop.counter }}">Remove</button>   
-    </div>
-    -->
-
+    {% endif %}
     <!--Remove modal-->
-    <!--TODO: only admins can remove home labels
     <form method="POST" class="p-0"> {% csrf_token %}
-        <div class="modal fade" id="removeHomeLabel{{ forloop.counter }}" data-bs-backdrop="static" data-bs-keyboard="false"
-        tab-index="-1" aria-labelledby="removeHomeLabelHeader" aria-hidden="true">
+        <div class="modal fade" id="removeHomeLabel{{ forloop.counter }}" data-bs-backdrop="static"
+            data-bs-keyboard="false" tab-index="-1" aria-labelledby="removeHomeLabelHeader" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content">
                     <div class="modal-header">
@@ -68,13 +80,14 @@
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-outline-danger" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-danger" name="home_rm_id" value="{{ label.id }}">Remove</button>
+                        <button type="submit" class="btn btn-danger" name="home_rm_id"
+                            value="{{ label.id }}">Remove</button>
                     </div>
                 </div>
             </div>
         </div>
     </form>
-    -->
+    {% endif %}
 </div>
 {% empty %}
 <div class="row mb-1">

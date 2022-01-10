@@ -42,7 +42,6 @@ class Home(models.Model):
         try:
             home.save()
             home.change_admin(admin)
-            print(home.admin)
 
             home.create_predefined_labels()
             home.save()
@@ -62,9 +61,9 @@ class Home(models.Model):
         If `home_only` is False no personal labels are returned.
         """
 
-        queryset = Label.objects.filter(home=self)
+        queryset = Label.objects.filter(home=self).order_by('name')
         if home_only:
-            queryset = queryset.filter(account=None)
+            queryset = queryset.filter(account=None).order_by('name')
 
         return queryset
 
@@ -81,14 +80,19 @@ class Home(models.Model):
 
         return label
 
-    def create_predefined_labels(self):
-        """TODO"""
+    def create_predefined_labels(self, keep_custom: bool = True):
+        """Creates a set of predefined labels. If a default label exists it is not created again."""
+
+        if not keep_custom:
+            custom = self.get_labels(home_only=True)
+            for label in custom:
+                label.delete()
 
         for name in Label.DEFAULT_LABELS:
-            Label(name=name, home=self).save()
+            Label.objects.get_or_create(name=name, home=self, is_default=True)
 
     def change_admin(self, account: 'Account'):
-        """TODO"""
+        """Changes the Home Admin removing the old one if present. Also grants Moderator permissions."""
 
         group, created = Group.objects.get_or_create(name=Home.ADMIN_GROUP)
         if created:
@@ -155,8 +159,8 @@ class Home(models.Model):
         mod_perms = {
             Permission.objects.get(codename='make_mod'),
             Permission.objects.get(codename='see_other_accounts'),
-            Permission.objects.get(codename='add_home_label'),
-            Permission.objects.get(codename='make_transaction'),
+            Permission.objects.get(codename='manage_home_labels'),
+            Permission.objects.get(codename='make_transactions'),
             Permission.objects.get(codename='plan_for_others')
         }
 
@@ -246,7 +250,8 @@ class Account(models.Model):
         """
 
         if include_home:
-            return Label.objects.filter(home=self.home).filter(account=self)
+            q = Q(home=self.home) & Q(account=None) | Q(account=self)
+            return Label.objects.filter(q).order_by('name')
         else:
             return Label.objects.filter(account=self)
 
@@ -316,7 +321,7 @@ class Label(models.Model):
 
     class Meta:
         permissions = {
-            ('add_home_label', 'Can create or delete home labels.')
+            ('manage_home_labels', 'Can create or delete home labels.')
         }
 
     name = models.CharField(max_length=10, verbose_name='Label name')
@@ -334,9 +339,19 @@ class Label(models.Model):
     It must be empty for a home label.
     """
 
-    # TODO
-    DEFAULT_LABELS = {
+    is_default = models.BooleanField(default=False, blank=True, verbose_name='If the label is a default label.')
+    """If the label is a default label."""
 
+    DEFAULT_LABELS = {
+        'Food',
+        'Transport',
+        'Entertainment',
+        'Health',
+        'Clothes',
+        'Accomodation',
+        'Education',
+        'Savings',
+        'Other'
     }
     """Default home labels."""
 
@@ -411,7 +426,7 @@ class Operation(BaseOperation):
 
     class Meta:
         permissions = {
-            ('make_transaction', 'Can make an internal transaction to another user.')
+            ('make_transactions', 'Can make an internal transaction to another user.')
         }
 
     creation_date = models.DateField(

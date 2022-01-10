@@ -51,8 +51,8 @@ class PlanCyclicOperationForm(BaseLabelForm):
         return super().save(commit=commit)
 
 
-class AddPersonalLabelForm(forms.ModelForm):
-    """Used to create a new personal label."""
+class AddLabelForm(forms.ModelForm):
+    """Used to create a new label."""
 
     class Meta:
         model = Label

@@ -34,7 +34,6 @@ class BaseTemplateView(TemplateView):
 
         if context:
             self.extra_context.update(context)
-
         if kwargs:
             self.extra_context.update(kwargs)
 
@@ -133,7 +132,7 @@ class OpHistoryView(BaseUserView):
         context = super().get_context_data(**kwargs)
 
         context['operations'] = Operation.objects.filter(
-            account=self.user.account)
+            account=self.user.account).order_by('-id')
 
         return context
 
@@ -163,16 +162,20 @@ class UserLabelsView(BaseUserView):
         context['home_labels'] = self.user.account.home.get_labels(
             home_only=True)
 
-        context['add_pers_label_form'] = forms.AddPersonalLabelForm()
+        context['add_label_form'] = forms.AddLabelForm()
+
+        context['manage_home_labels'] = self.user.has_perm(
+            'budget.manage_home_labels')
 
         return context
 
+    # TODO
     def post(self, request: HttpRequest, *args, **kwargs):
 
         post = request.POST
 
         if post.get('add_pers_label') is not None:
-            form = forms.AddPersonalLabelForm(post)
+            form = forms.AddLabelForm(post)
             if form.is_valid():
                 label = form.save(commit=False)
                 self.user.account.add_label(label=label)
@@ -182,11 +185,32 @@ class UserLabelsView(BaseUserView):
             Label.objects.get(id=label_id).delete()
 
         elif post.get('pers_rename_id') is not None:
-            form = forms.AddPersonalLabelForm(post)
+            form = forms.AddLabelForm(post)
             if form.is_valid():
                 label_id = post.get('pers_rename_id')
                 label = Label.objects.get(id=label_id)
                 label.rename(new_name=form.cleaned_data.get('name'))
+
+        elif post.get('add_home_label') is not None:
+            form = forms.AddLabelForm(post)
+            if form.is_valid():
+                label = form.save(commit=False)
+                self.user.account.home.add_label(label=label)
+
+        elif post.get('home_rename_id') is not None:
+            form = forms.AddLabelForm(post)
+            if form.is_valid():
+                label_id = post.get('home_rename_id')
+                label = Label.objects.get(id=label_id)
+                label.rename(new_name=form.cleaned_data.get('name'))
+
+        elif post.get('home_rm_id') is not None:
+            label_id = post.get('home_rm_id')
+            Label.objects.get(id=label_id).delete()
+
+        elif post.get('home_default') is not None:
+            keep = post.get('home_default') == 'keep'
+            self.user.account.home.create_predefined_labels(keep_custom=keep)
 
         return self.redirect()
 
@@ -202,7 +226,7 @@ class CyclicOperationsView(BaseUserView):
         context = super().get_context_data(**kwargs)
 
         context['operations'] = OperationPlan.objects.filter(
-            account=self.user.account)
+            account=self.user.account).order_by('-id')
 
         form = forms.PlanCyclicOperationForm()
         form.update_label_choices(self.user)
@@ -246,11 +270,12 @@ class HomeView(BaseHomeView):
 
         context['new_user_form'] = UserCreationForm()
         context['accounts'] = Account.objects.filter(
-            home=self.home)
+            home=self.home).order_by('user__username')
 
         context['manage_users'] = self.user.has_perm('budget.manage_users')
         context['see_other_accounts'] = self.user.has_perm(
             'budget.see_other_accounts')
+        context['make_transactions'] = self.user.has_perm('budget.make_transactions')
 
         return context
 
@@ -334,13 +359,13 @@ class ManageUserView(BaseHomeView):
 
         if post.get('change') is not None:
             self._change_perms()
-        
+
         elif post.get('make_mod') is not None:
             self.home.add_mod(self.managed_acc)
-        
+
         elif post.get('remove_mod') is not None:
             self.home.remove_mod(self.managed_acc)
-        
+
         elif post.get('remove') is not None:
             self.managed_acc.delete()
             return redirect(HomeView.redirect_name)
@@ -349,7 +374,7 @@ class ManageUserView(BaseHomeView):
 
     def _change_perms(self):
         """TODO"""
-        
+
         form = None
         if self.managed_acc.is_mod():
             form = forms.ChangeModPermissionsForm(self.request.POST)
