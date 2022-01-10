@@ -38,16 +38,17 @@ class PlanCyclicOperationForm(BaseLabelForm):
 
     class Meta:
         model = OperationPlan
-        fields = ['amount', 'label', 'period', 'period_count', 'next_date', 'description']
+        fields = ['amount', 'label', 'period',
+                  'period_count', 'next_date', 'description']
 
     next_date = forms.DateField(required=False,
                                 label="Starting day", widget=widgets.SelectDateWidget)
 
     def save(self, commit: bool = True):
-        
+
         if self.cleaned_data.get('next_date') is None:
             self.instance.next_date = OperationPlan.datetime_today()
-        
+
         return super().save(commit=commit)
 
 
@@ -85,10 +86,12 @@ class ChangeUserPermissionsForm(forms.Form):
 
     def change_perms(account: Account):
         """TODO"""
-        
+
         pass
 
 # TODO
+
+
 class ChangeModPermissionsForm(forms.Form):
     """TODO"""
 
@@ -96,3 +99,30 @@ class ChangeModPermissionsForm(forms.Form):
         """TODO"""
 
         pass
+
+
+class TransactionForm(forms.ModelForm):
+    """TODO"""
+
+    class Meta:
+        model = Operation
+        fields = ['amount', 'description']
+
+    def make_transaction(self, source: Account, target: Account):
+        if source == target:
+            return None, None
+
+        data = self.cleaned_data
+        amount = abs(data.get('amount'))
+        desc = data.get('description')
+        label = Label.get_global(name=('Internal'))
+
+        outcoming = Operation(account=source, amount=-amount,
+                              description=desc, final_date=Operation.datetime_today(), label=label)
+        incoming = Operation(account=target, amount=amount,
+                             description=desc, final_date=Operation.datetime_today(), label=label)
+
+        outcoming.save()
+        incoming.save()
+
+        return outcoming, incoming

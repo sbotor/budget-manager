@@ -324,7 +324,7 @@ class Label(models.Model):
             ('manage_home_labels', 'Can create or delete home labels.')
         }
 
-    name = models.CharField(max_length=10, verbose_name='Label name')
+    name = models.CharField(max_length=32, verbose_name='Label name')
     """Label name."""
 
     home = models.ForeignKey(
@@ -342,6 +342,9 @@ class Label(models.Model):
     is_default = models.BooleanField(default=False, blank=True, verbose_name='If the label is a default label.')
     """If the label is a default label."""
 
+    _global_initialized = False
+    """TODO"""
+
     DEFAULT_LABELS = {
         'Food',
         'Transport',
@@ -354,6 +357,10 @@ class Label(models.Model):
         'Other'
     }
     """Default home labels."""
+
+    GLOBAL_LABELS = {
+        'Internal'
+    }
 
     def __str__(self):
         prefix = ''
@@ -376,18 +383,24 @@ class Label(models.Model):
             self.save()
 
     @staticmethod
-    def get_global(names: Iterable[str] = None):
+    def get_global(name: str):
         """TODO"""
 
-        qset = Label.objects.filter(home=None)
-        q = Q()
+        if not Label._global_initialized:
+            Label._init_global()
 
-        if names:
-            for name in names:
-                q = q | Q(label__name=name)
-            return qset.filter(q)
+        qset = Label.objects.filter(home=None)
+
+        if name:
+            return qset.get(name=name)
         else:
             return qset
+
+    def _init_global():
+        """TODO"""
+
+        for name in Label.GLOBAL_LABELS:
+            Label.objects.get_or_create(name=name, home=None, is_default=True)
 
 
 class BaseOperation(models.Model):
@@ -416,7 +429,7 @@ class BaseOperation(models.Model):
 
     @staticmethod
     def datetime_today():
-        """TODO"""
+        """Returns timezone-aware present date."""
 
         return timezone.now().date()
 

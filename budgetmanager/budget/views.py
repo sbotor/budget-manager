@@ -69,7 +69,7 @@ class AddHomeView(BaseTemplateView):
             return render(request, self.template_name, self.get_context_data())
 
 
-@method_decorator(login_required(login_url='/login'), name='dispatch')
+@method_decorator(login_required(login_url='/login'), name='setup')
 class BaseUserView(ABC, BaseTemplateView):
     """Abstract class for user-specific view inheritance."""
 
@@ -249,14 +249,12 @@ class CyclicOperationsView(BaseUserView):
 
         return self.redirect()
 
-
 class BaseHomeView(BaseUserView):
     """Abstract class serving as base for Home-oriented views."""
 
     def setup(self, request: HttpRequest, *args, **kwargs):
         super().setup(request, *args, **kwargs)
         self.home = self.user.account.home
-
 
 class HomeView(BaseHomeView):
     """Class for the user's Home view."""
@@ -269,6 +267,7 @@ class HomeView(BaseHomeView):
         context = super().get_context_data(**kwargs)
 
         context['new_user_form'] = UserCreationForm()
+        context['transaction_form'] = forms.TransactionForm()
         context['accounts'] = Account.objects.filter(
             home=self.home).order_by('user__username')
 
@@ -288,6 +287,17 @@ class HomeView(BaseHomeView):
 
         elif post.get('create') is not None:
             self._create_user()
+
+        elif post.get('transaction') is not None:
+            form = forms.TransactionForm(post)
+            target = Account.objects.get(id=post.get('transaction'))
+            valid = False
+            if form.is_valid():
+                outcoming, incoming = form.make_transaction(source=self.user.account, target=target)
+                if outcoming and incoming:
+                    valid = True
+            if not valid:
+                messages.error('Invalid transaction form.')
 
         return self.redirect()
 
