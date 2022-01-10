@@ -286,7 +286,7 @@ class HomeView(BaseHomeView):
             acc_id = post.get('rm_id')
             Account.objects.get(id=acc_id).delete()
 
-        else:
+        elif post.get('create') is not None:
             self._create_user()
 
         return self.redirect()

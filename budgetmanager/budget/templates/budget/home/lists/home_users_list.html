@@ -2,8 +2,8 @@
     <form method="POST"> {% csrf_token %}
         {% for account in accounts %}
         <div class="row mt-3">
-            <div class="col-auto">{{ account.user }}</div>
-            {% if make_transactions %}
+            <div class="col-auto">{% if account.id == user.account.id %}[You] {% endif %}{{ account.user }}</div>
+            {% if make_transactions and account.id != user.account.id %}
             <div class="col-auto">
                 <!--TODO: transaction modal-->
                 <button class="btn btn-outline-success">Send money</button>
