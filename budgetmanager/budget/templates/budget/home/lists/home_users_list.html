@@ -1,0 +1,19 @@
+<div class="container">
+    {% for account in accounts %}
+    <div class="row mt-3">
+        <form method="POST"> {% csrf_token %}
+            <div class="col-auto">{{ account.user }}</div>
+            {% if manage_users and account.id != account.home.admin and account.id != user.account.id %}
+
+            <div class="col-auto">
+                <!--TODO: confirmation modal-->
+                <button type="submit" class="btn btn-danger" name="rm_id" value="{{ account.id }}">Remove</button>
+            </div>
+        </form>
+        <div class="col-auto">
+            <a href="home/{{ account.user.username }}" class="btn btn-primary">Manage</a>
+        </div>
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>

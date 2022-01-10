@@ -2,7 +2,6 @@ from django import forms
 from django.contrib.auth.models import User
 from django.forms import widgets
 from .models import *
-from django.utils import timezone
 from django.contrib.auth.forms import UserCreationForm
 
 
@@ -29,7 +28,7 @@ class AddOperationForm(BaseLabelForm):
         """Overriden method to check if the operation should be finalized and update accordingly."""
 
         if self.cleaned_data.get('finalized'):
-            self.instance.final_date = timezone.now().date()
+            self.instance.final_date = Operation.datetime_today()
 
         return super().save(commit=commit)
 
@@ -39,11 +38,17 @@ class PlanCyclicOperationForm(BaseLabelForm):
 
     class Meta:
         model = OperationPlan
-        fields = ['amount', 'label', 'period', 'period_count', 'next_date']
+        fields = ['amount', 'label', 'period', 'period_count', 'next_date', 'description']
 
-    # TODO: add a validator against a past date
     next_date = forms.DateField(required=False,
                                 label="Starting day", widget=widgets.SelectDateWidget)
+
+    def save(self, commit: bool = True):
+        
+        if self.cleaned_data.get('next_date') is None:
+            self.instance.next_date = OperationPlan.datetime_today()
+        
+        return super().save(commit=commit)
 
 
 class AddPersonalLabelForm(forms.ModelForm):
@@ -72,3 +77,22 @@ class HomeCreationForm(UserCreationForm):
             user.delete()
 
         return home
+
+
+# TODO
+class ChangeUserPermissionsForm(forms.Form):
+    """TODO"""
+
+    def change_perms(account: Account):
+        """TODO"""
+        
+        pass
+
+# TODO
+class ChangeModPermissionsForm(forms.Form):
+    """TODO"""
+
+    def change_perms(account: Account):
+        """TODO"""
+
+        pass

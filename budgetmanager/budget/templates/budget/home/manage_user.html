@@ -1,0 +1,22 @@
+{% extends 'budget/base.html' %}
+{% load crispy_forms_filters %}
+
+{% block title %}{{ managed_acc }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-auto">
+        <a href="/user" class="btn btn-outline-primary mb-3">Back to profile</a>
+    </div>
+</div>
+<h3 class="row">Manage user {{ managed_acc }}</h3>
+<form method="POST" class="row"> {% csrf_token %}
+    {% if is_mod %}
+    <button type="submit" class="btn btn-outline-danger col-aut" name="remove_mod">Remove Moderator permissions</button>
+    {% else %}
+    <button type="submit" class="btn btn-outline-primary col-auto" name="make_mod">Grant Moderator permissions</button>
+    {% endif %}
+    <button type="submit" class="btn btn-success col-auto" name="change">Save</button>
+    <button type="submit" class="btn btn-danger col-auto" name="remove">Remove user</button>
+</form>
+{% endblock %}

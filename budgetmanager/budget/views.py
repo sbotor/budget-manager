@@ -1,8 +1,8 @@
 from abc import ABC
-from django.http.request import HttpRequest, QueryDict
+from django.http.request import HttpRequest
 from django.shortcuts import render, redirect
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, user_passes_test
 from django.utils.decorators import method_decorator
 from django.views.generic.base import TemplateView
 from django.contrib.auth.forms import UserCreationForm
@@ -15,7 +15,31 @@ def index(request: HttpRequest):
     return render(request, 'budget/index.html')
 
 
-class AddHomeView(TemplateView):
+class BaseTemplateView(TemplateView):
+    """Base view for template rendering with context and convenient redirecting."""
+
+    redirect_name = None
+    """View redirect name."""
+
+    def redirect(self):
+        """Redirects to the specified view name."""
+
+        return redirect(self.redirect_name)
+
+    def update_context(self, context: dict = None, **kwargs):
+        """Method adding passed keyword arguments to the view's extra_context."""
+
+        if self.extra_context == None:
+            self.extra_context = dict()
+
+        if context:
+            self.extra_context.update(context)
+
+        if kwargs:
+            self.extra_context.update(kwargs)
+
+
+class AddHomeView(BaseTemplateView):
 
     template_name = 'registration/new_home.html'
 
@@ -41,18 +65,18 @@ class AddHomeView(TemplateView):
             return redirect(self.redirect_name)
 
         else:
-            self.extra_context = {'form': form}
+            self.update_context(form=form)
 
             return render(request, self.template_name, self.get_context_data())
 
 
 @method_decorator(login_required(login_url='/login'), name='dispatch')
-class BaseUserView(ABC, TemplateView):
+class BaseUserView(ABC, BaseTemplateView):
     """Abstract class for user-specific view inheritance."""
 
     def setup(self, request: HttpRequest, *args, **kwargs):
         self.user = request.user
-        return super().setup(request, *args, **kwargs)
+        super().setup(request, *args, **kwargs)
 
 
 class UserView(BaseUserView):
@@ -84,18 +108,18 @@ class UserView(BaseUserView):
         if post.get('rm_id') is not None:  # Remove an operation
             op_id = post.get('rm_id')
             Operation.objects.get(id=op_id).delete()
-        
+
         elif post.get('fin_id') is not None:  # Finalize an operation
             op_id = post.get('fin_id')
             Operation.objects.get(id=op_id).finalize()
-        
+
         elif post.get('add_operation') is not None:  # Add a new operation
             form = forms.AddOperationForm(post)
             if form.is_valid():
                 op = form.save(commit=False)
                 self.user.account.add_operation(operation=op)
 
-        return redirect(self.redirect_name)
+        return self.redirect()
 
 
 class OpHistoryView(BaseUserView):
@@ -121,7 +145,7 @@ class OpHistoryView(BaseUserView):
             op_id = request.POST.get('fin_id')
             Operation.objects.get(id=op_id).finalize()
 
-        return redirect(self.redirect_name)
+        return self.redirect()
 
 
 class UserLabelsView(BaseUserView):
@@ -164,43 +188,9 @@ class UserLabelsView(BaseUserView):
                 label = Label.objects.get(id=label_id)
                 label.rename(new_name=form.cleaned_data.get('name'))
 
-        return redirect(self.redirect_name)
+        return self.redirect()
 
 
-class UserHomeView(BaseUserView):
-    """Class for the user's Home view."""
-
-    template_name = 'budget/home/home.html'
-
-    redirect_name = 'user_home'
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        
-        context['form'] = UserCreationForm()
-        context['accounts'] = Account.objects.filter(
-            home=self.user.account.home)
-        
-        return context
-
-    def post(self, request: HttpRequest, *args, **kwargs):
-        form = UserCreationForm(request.POST)
-        if form.is_valid():
-
-            home = request.user.account.home
-            account = Account(home=home)
-            user = form.save()
-
-            account.user = user
-            account.save()
-
-            messages.success(
-                request, f'User "{user.username}" was successfully created')
-
-        return redirect(self.redirect_name)
-
-
-# TODO
 class CyclicOperationsView(BaseUserView):
     """TODO"""
 
@@ -211,7 +201,8 @@ class CyclicOperationsView(BaseUserView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        context['operations'] = OperationPlan.objects.filter(account=self.user.account)
+        context['operations'] = OperationPlan.objects.filter(
+            account=self.user.account)
 
         form = forms.PlanCyclicOperationForm()
         form.update_label_choices(self.user)
@@ -220,8 +211,6 @@ class CyclicOperationsView(BaseUserView):
         return context
 
     def post(self, request: HttpRequest, *args, **kwargs):
-        """TODO"""
-        
         post = request.POST
 
         if post.get('rm_id') is not None:
@@ -232,6 +221,139 @@ class CyclicOperationsView(BaseUserView):
             form = forms.PlanCyclicOperationForm(post)
             if form.is_valid():
                 plan = form.save(commit=False)
-                self.user.account.plan_operation(plan=plan)
+                self.user.account.add_operation_plan(plan=plan)
 
-        return redirect(self.redirect_name)
+        return self.redirect()
+
+
+class BaseHomeView(BaseUserView):
+    """Abstract class serving as base for Home-oriented views."""
+
+    def setup(self, request: HttpRequest, *args, **kwargs):
+        super().setup(request, *args, **kwargs)
+        self.home = self.user.account.home
+
+
+class HomeView(BaseHomeView):
+    """Class for the user's Home view."""
+
+    template_name = 'budget/home/home.html'
+
+    redirect_name = 'user_home'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        context['new_user_form'] = UserCreationForm()
+        context['accounts'] = Account.objects.filter(
+            home=self.home)
+
+        context['manage_users'] = self.user.has_perm('budget.manage_users')
+        context['see_other_accounts'] = self.user.has_perm(
+            'budget.see_other_accounts')
+
+        return context
+
+    def post(self, request: HttpRequest, *args, **kwargs):
+        post = request.POST
+
+        if post.get('rm_id'):
+            acc_id = post.get('rm_id')
+            Account.objects.get(id=acc_id).delete()
+
+        else:
+            self._create_user()
+
+        return self.redirect()
+
+    def _create_user(self):
+        request = self.request
+        form = UserCreationForm(request.POST)
+        if form.is_valid():
+            home = request.user.account.home
+            account = Account(home=home)
+            user = form.save()
+
+            account.user = user
+            account.save()
+
+            messages.success(
+                request, f'User "{user.username}" was successfully created')
+
+            return account
+        else:
+            messages.error(request, 'Invalid user form.')
+            return None
+
+
+class ManageUserView(BaseHomeView):
+    """TODO"""
+
+    template_name = 'budget/home/manage_user.html'
+
+    def setup(self, request: HttpRequest, *args, **kwargs):
+        super().setup(request, *args, **kwargs)
+
+        try:
+            self.managed_acc = User.objects.get(
+                username=kwargs['username']).account
+            self.update_context(managed_acc=self.managed_acc)
+
+            self.redirect_name = f'/home/{self.managed_acc.user.username}'
+        except User.DoesNotExist or Account.DoesNotExist:
+            self.managed_acc = None
+
+    def _check_account(self, account: Account):
+        """TODO"""
+
+        return self.managed_acc.home == account.home and self.user.has_perm('budget.manage_users') and self.managed_acc != account
+
+    def dispatch(self, request: HttpRequest, *args, **kwargs):
+        if not self.managed_acc:
+            return redirect('/')
+
+        acc = request.user.account
+
+        if self._check_account(acc):
+            return super().dispatch(request, *args, **kwargs)
+        else:
+            return redirect('/')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        context['managed_acc'] = self.managed_acc
+        context['is_mod'] = self.managed_acc.is_mod()
+
+        return context
+
+    def post(self, request: HttpRequest, *args, **kwargs):
+        post = request.POST
+
+        print(post)
+
+        if post.get('change') is not None:
+            self._change_perms()
+        
+        elif post.get('make_mod') is not None:
+            self.home.add_mod(self.managed_acc)
+        
+        elif post.get('remove_mod') is not None:
+            self.home.remove_mod(self.managed_acc)
+        
+        elif post.get('remove') is not None:
+            self.managed_acc.delete()
+            return redirect(HomeView.redirect_name)
+
+        return self.redirect()
+
+    def _change_perms(self):
+        """TODO"""
+        
+        form = None
+        if self.managed_acc.is_mod():
+            form = forms.ChangeModPermissionsForm(self.request.POST)
+        else:
+            form = forms.ChangeUserPermissionsForm(self.request.POST)
+
+        form.change_perms(self.managed_acc)

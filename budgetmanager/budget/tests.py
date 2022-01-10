@@ -15,7 +15,7 @@ from freezegun import freeze_time
 class PlanCommandTest(TestCase):
 
     def setUp(self):
-        self.initial_date = timezone.now().date()
+        self.initial_date = OperationPlan.datetime_today()
         self.dates = {
             'D': self.initial_date + timedelta(days=1),
             'W': self.initial_date + timedelta(days=7),

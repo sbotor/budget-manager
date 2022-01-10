@@ -8,7 +8,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         counter = 0
-        qset = OperationPlan.objects.filter(next_date__lte=timezone.now().date())
+        qset = OperationPlan.objects.filter(next_date__lte=OperationPlan.datetime_today())
         #print(qset)
 
         for plan in qset:

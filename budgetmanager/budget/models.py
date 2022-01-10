@@ -1,5 +1,4 @@
 from datetime import date, timedelta
-from os import error
 from typing import Iterable
 from django.db import models, IntegrityError
 from django.db.models.query_utils import Q
@@ -28,8 +27,8 @@ class Home(models.Model):
     It has no backward relation to the Home object as it can be obtained via the regular Account.home field.
     """
 
-    ADMIN = 'home_admin'
-    MOD = 'moderator'
+    ADMIN_GROUP = 'home_admin'
+    MOD_GROUP = 'moderator'
 
     def __str__(self):
         return self.name
@@ -45,7 +44,7 @@ class Home(models.Model):
             home.change_admin(admin)
             print(home.admin)
 
-            home._create_predefined_labels()
+            home.create_predefined_labels()
             home.save()
 
             return home
@@ -69,7 +68,6 @@ class Home(models.Model):
 
         return queryset
 
-    # TODO
     def add_label(self, label: 'Label', commit: bool = True):
         """Add a new personal home to the database. Returns the newly added Label.
 
@@ -83,7 +81,7 @@ class Home(models.Model):
 
         return label
 
-    def _create_predefined_labels(self):
+    def create_predefined_labels(self):
         """TODO"""
 
         for name in Label.DEFAULT_LABELS:
@@ -92,7 +90,7 @@ class Home(models.Model):
     def change_admin(self, account: 'Account'):
         """TODO"""
 
-        group, created = Group.objects.get_or_create(name=Home.ADMIN)
+        group, created = Group.objects.get_or_create(name=Home.ADMIN_GROUP)
         if created:
             Home._setup_admin_group(group)
 
@@ -113,8 +111,8 @@ class Home(models.Model):
 
     def add_mod(self, account: 'Account', commit: bool = True):
         """TODO"""
-        
-        group, created = Group.objects.get_or_create(name=Home.MOD)
+
+        group, created = Group.objects.get_or_create(name=Home.MOD_GROUP)
         if created:
             Home._setup_mod_group(group)
 
@@ -123,27 +121,37 @@ class Home(models.Model):
         if commit:
             account.user.save()
 
-    # TODO
     def remove_mod(self, account: 'Account', commit: bool = True):
         """TODO"""
-        pass
+        
+        group = Group.objects.get(name=Home.MOD_GROUP)
 
-    # TODO
+        if account.is_mod():
+            account.user.groups.remove(group)
+        
+        account.user.permissions.clear()
+
+        if commit:
+            account.user.save()
+
     @staticmethod
     def _setup_admin_group(group: Group):
+        """TODO"""
+
         admin_perms = {
             Permission.objects.get(codename='manage_home'),
             Permission.objects.get(codename='make_home_admin'),
-            
+
             Permission.objects.get(codename='manage_users'),
         }
 
         group.permissions.add(*admin_perms)
         group.save()
 
-    # TODO
     @staticmethod
     def _setup_mod_group(group: Group):
+        """TODO"""
+
         mod_perms = {
             Permission.objects.get(codename='make_mod'),
             Permission.objects.get(codename='see_other_accounts'),
@@ -154,6 +162,7 @@ class Home(models.Model):
 
         group.permissions.add(*mod_perms)
         group.save()
+
 
 class Account(models.Model):
     """The model of the user account."""
@@ -253,12 +262,12 @@ class Account(models.Model):
 
         return operation
 
-    def plan_operation(self, plan: 'OperationPlan', commit: bool = True):
+    def add_operation_plan(self, plan: 'OperationPlan', commit: bool = True):
         """TODO"""
 
         plan.account = self
         op = None
-        now = timezone.now().date()
+        now = OperationPlan.datetime_today()
 
         if plan.next_date == now:
             op = plan.create_operation(commit=False)
@@ -267,6 +276,7 @@ class Account(models.Model):
         if commit:
             plan.save()
             if op is not None:
+                print(op.plan == plan)
                 op.save()
 
         return (plan, op)
@@ -283,6 +293,23 @@ class Account(models.Model):
             label.save()
 
         return label
+
+    def delete(self, using=None, keep_parents: bool = False):
+
+        user = self.user
+        ret_val = super().delete(using=using, keep_parents=keep_parents)
+        user.delete()
+        return ret_val
+
+    def is_admin(self):
+        """Checks if the Account's User is a home Admin."""
+
+        return self.user.groups.filter(name=Home.ADMIN_GROUP).exists()
+
+    def is_mod(self):
+        """Checks if the Account's User is a home Moderator."""
+
+        return self.user.groups.filter(name=Home.MOD_GROUP).exists()
 
 class Label(models.Model):
     """Label model. Home labels do not have a value in the account field and personal labels do. Global labels have neither."""
@@ -308,8 +335,10 @@ class Label(models.Model):
     """
 
     # TODO
-    DEFAULT_LABELS = ()
-    """TODO"""
+    DEFAULT_LABELS = {
+
+    }
+    """Default home labels."""
 
     def __str__(self):
         prefix = ''
@@ -370,6 +399,12 @@ class BaseOperation(models.Model):
         max_length=500, null=True, blank=True, verbose_name="Optional description")
     """Optional description of the operation."""
 
+    @staticmethod
+    def datetime_today():
+        """TODO"""
+
+        return timezone.now().date()
+
 
 class Operation(BaseOperation):
     """Operation model. If the operation does not have a `final_date` then it is not finalized."""
@@ -428,7 +463,7 @@ class Operation(BaseOperation):
 
         if self.final_date is None:
             if final_datetime is None:
-                self.final_date = timezone.now().date()
+                self.final_date = Operation.datetime_today()
             else:
                 self.final_date = final_datetime.date()
 
@@ -461,14 +496,8 @@ class OperationPlan(BaseOperation):
     """How many periods (days, weeks, months, years) should pass between a new operation."""
 
     next_date = models.DateField(
-        default='_timezone_now_date_wrapper', verbose_name='Next operation creation date')
+        default='datetime_today', verbose_name='Next operation creation date')
     """Next day that the new operation should be created."""
-
-    @staticmethod
-    def _timezone_now_date_wrapper():
-        """TODO"""
-
-        return timezone.now().date()
 
     def save(self, force_insert: bool = False, force_update: bool = False, using=None, update_fields=None):
         """TODO"""
@@ -480,10 +509,12 @@ class OperationPlan(BaseOperation):
         while self.is_due():
             op = self.create_operation(commit=False)
 
-            super().save(force_insert=force_insert, force_update=force_update,
-                         using=using, update_fields=update_fields)
+            super().save()
             if op is not None:
                 op.save()
+
+        super().save(force_insert=force_insert, force_update=force_update,
+                     using=using, update_fields=update_fields)
 
     def calculate_next(self, base_date: date = None):
         """Calculates the next date of the operation creation.
@@ -518,8 +549,7 @@ class OperationPlan(BaseOperation):
         op = Operation(account=self.account,
                        label=self.label,
                        amount=self.amount,
-                       description=self.description,
-                       plan=self)
+                       description=self.description)
 
         #print(f'Operation {op} created.')
 
@@ -528,10 +558,14 @@ class OperationPlan(BaseOperation):
         if commit:
             op.save()
             self.save()
+            op.plan = self
+            op.save()
+        else:
+            op.plan = self
 
         return op
 
     def is_due(self):
         """TODO"""
 
-        return self.next_date <= timezone.now().date()
+        return self.next_date <= OperationPlan.datetime_today()
