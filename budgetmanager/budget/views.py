@@ -92,6 +92,8 @@ class UserView(BaseUserView):
 
         context['operations'] = Operation.objects.filter(
             account=self.user.account).order_by('-id')[:5]
+        context['allOperations'] = Operation.objects.filter(
+            account=self.user.account).order_by('-id')
         context['final_amount'] = self.user.account.final_amount
         context['current_amount'] = self.user.account.current_amount
 
