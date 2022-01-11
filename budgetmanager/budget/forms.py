@@ -84,45 +84,64 @@ class HomeCreationForm(UserCreationForm):
         return home
 
 
-# TODO
 class ChangeUserPermissionsForm(forms.Form):
     """TODO"""
 
-    CHOICES = {
-        ('make_transactions', "Make transactions."),
-    }
-
     choices = forms.MultipleChoiceField(
-        choices=CHOICES, widget=forms.widgets.CheckboxSelectMultiple, label='Permissions', required=False)
+        choices={}, widget=forms.widgets.CheckboxSelectMultiple, label='Permissions', required=False)
+    """TODO"""
 
     def change_perms(self, account: Account):
         """TODO"""
 
         choices = self.cleaned_data.get('choices')
         print(choices)
+        if not choices:
+            account.clear_additional_perms()
+            return
 
-        pass
+        if account.is_admin():
+            return
+        elif account.is_mod():
+            perms = Home.MOD_PERMS
+        else:
+            perms = Home.USER_PERMS
+
+        for perm in perms:
+            app_perm = f'budget.{perm[0]}'
+            print(f'{perm}, {app_perm}, {account.has_perm(app_perm)}, {perm in choices}')
+            if perm[0] in choices and not account.has_perm(app_perm):
+                account.add_perm(codename=perm[0])
+            elif perm[0] not in choices and account.has_perm(app_perm):
+                account.remove_perm(codename=perm[0])
+
+    def update_choices(self, account: Account):
+        """TODO"""
+
+        if account.is_mod():
+            choices = Home.MOD_PERMS
+        else:
+            choices = Home.USER_PERMS
+
+        choice_list = list(choices)
+        choice_list.sort()
+        self.fields['choices'].choices = choice_list
+
+        return choices
 
     def update_initial(self, account: Account):
         """Updates the initially selected permissions according to the specified user Account."""
 
+        choices = self.update_choices(account)
+        # print(choices)
         set_list = []
-        for choice in self.CHOICES:
-            if account.has_perm(f'budget.{choice[0]}'):
+        for choice in choices:
+            app_perm = f'budget.{choice[0]}'
+            if account.has_perm(app_perm):
+                print('Has perm ' + app_perm)
                 set_list.append(choice[0])
 
         self.fields['choices'].initial = set_list
-
-# TODO
-
-
-class ChangeModPermissionsForm(ChangeUserPermissionsForm):
-    """TODO"""
-
-    def change_perms(account: Account):
-        """TODO"""
-
-        pass
 
 
 class TransactionForm(forms.ModelForm):

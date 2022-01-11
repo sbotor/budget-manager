@@ -389,15 +389,12 @@ class ManageUserView(BaseHomeView):
 
         context['managed_acc'] = self.managed_acc
 
-        if self.managed_acc.is_mod():
-            context['is_mod'] = True
-            form = forms.ChangeModPermissionsForm()
-        else:
-            context['is_mod'] = False
-            form = forms.ChangeUserPermissionsForm()
-
+        context['is_mod'] = self.managed_acc.is_mod()
+        form = forms.ChangeUserPermissionsForm()
         form.update_initial(self.managed_acc)
         context['perm_form'] = form
+
+        #print(form.fields)
 
         return context
 
@@ -424,14 +421,11 @@ class ManageUserView(BaseHomeView):
     def _change_perms(self):
         """TODO"""
 
-        form = None
-        if self.managed_acc.is_mod():
-            form = forms.ChangeModPermissionsForm(self.request.POST)
-        else:
-            form = forms.ChangeUserPermissionsForm(self.request.POST)
+        form = forms.ChangeUserPermissionsForm(self.request.POST)
+        form.update_choices(self.managed_acc)
 
         if form.is_valid():
             form.change_perms(self.managed_acc)
         else:
             messages.error(self.request, "Invalid user permissions form.")
-            print(form.errors.as_text())
+            #print(form.errors.as_text())

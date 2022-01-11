@@ -10,16 +10,23 @@
     </div>
 </div>
 <h3 class="row">Manage user {{ managed_acc }}</h3>
-<form method="POST" class="row"> {% csrf_token %}
+<div class="row">
     {% if is_mod %}
-    <button type="submit" class="btn btn-outline-danger col-aut" name="remove_mod">Remove Moderator permissions</button>
+    <button class="btn btn-outline-danger col-auto mt-3" data-bs-toggle="modal" data-bs-target="#unmakeModModal">Remove Moderator permissions</button>
+    {% include 'budget/home/modals/unmake_mod_confirmation_modal.html' %}
     {% else %}
-    <button type="submit" class="btn btn-outline-primary col-auto" name="make_mod">Grant Moderator permissions</button>
+    <button class="btn btn-primary col-auto mt-3" data-bs-toggle="modal" data-bs-target="#makeModModal">Grant Moderator permissions</button>
+    {% include 'budget/home/modals/make_mod_confirmation_modal.html' %}
     {% endif %}
 
-    {{ perm_form|crispy }}
-
-    <button type="submit" class="btn btn-success col-auto" name="change">Save</button>
-    <button type="submit" class="btn btn-danger col-auto" name="remove">Remove user</button>
-</form>
+    <form method="POST" class="row mt-3"> {% csrf_token %}
+        <h3 class="mb-1">Specific user permissions</h3>
+        {{ perm_form|crispy }}
+        <button type="submit" class="btn btn-success col-auto" name="change">Save</button>
+    </form>
+</div>
+<div class="row">
+    <button class="btn btn-danger col-auto mt-5" data-bs-toggle="modal" data-bs-target="#removeUserModal">Remove user</button>
+    {% include 'budget/home/modals/remove_user_confirmation_modal.html' %}
+</div>
 {% endblock %}

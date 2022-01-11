@@ -28,7 +28,37 @@ class Home(models.Model):
     """
 
     ADMIN_GROUP = 'home_admin'
+    """Home admin group name."""
+
     MOD_GROUP = 'moderator'
+    """Home moderator group name."""
+
+    BASE_MOD_PERMS = {
+        ('see_other_accounts', 'See other users\'s accounts'),
+        ('manage_home_labels', 'Manage home labels'),
+        ('make_transactions', 'Send money to another user'),
+    }
+    """Base mod permissions codenames."""
+
+    MOD_PERMS = {
+        ('make_mod', 'Grant Moderator permissions'),
+        ('plan_for_others', 'Plan operations for other users'),
+        ('manage_users', 'Manage other users'),
+        ('make_mod', 'Grant Moderator permissions')
+    }
+    """Additional mod permissions codenames. Can be granted in addition to the base ones."""
+
+    BASE_ADMIN_PERMS = {
+        ('manage_home', 'Manage the Home'),
+        ('make_home_admin', 'Pass the admin role to another user'),
+        ('manage_users', 'Manage other users'),
+    }
+    """Base admin permissions codenames."""
+
+    USER_PERMS = {
+        ('make_transactions', 'Send money to another user')
+    }
+    """Additional regular user permissions."""
 
     def __str__(self):
         return self.name
@@ -142,12 +172,7 @@ class Home(models.Model):
     def _setup_admin_group(group: Group):
         """TODO"""
 
-        admin_perms = {
-            Permission.objects.get(codename='manage_home'),
-            Permission.objects.get(codename='make_home_admin'),
-
-            Permission.objects.get(codename='manage_users'),
-        }
+        admin_perms = [Permission.objects.get_or_create(codename=perm[0])[0] for perm in Home.BASE_ADMIN_PERMS]
 
         group.permissions.add(*admin_perms)
         group.save()
@@ -156,13 +181,7 @@ class Home(models.Model):
     def _setup_mod_group(group: Group):
         """TODO"""
 
-        mod_perms = {
-            Permission.objects.get(codename='make_mod'),
-            Permission.objects.get(codename='see_other_accounts'),
-            Permission.objects.get(codename='manage_home_labels'),
-            Permission.objects.get(codename='make_transactions'),
-            Permission.objects.get(codename='plan_for_others')
-        }
+        mod_perms = [Permission.objects.get_or_create(codename=perm[0])[0] for perm in Home.BASE_MOD_PERMS]
 
         group.permissions.add(*mod_perms)
         group.save()
@@ -361,11 +380,64 @@ class Account(models.Model):
 
         return outcoming, incoming
 
-    def has_perm(self, codename: str):
-        """Checks if the Account's user has a specified permission."""
+    def has_perm(self, perm: str):
+        """Checks if the Account's user has a specified permission.
+        Shorthand for *.user.has_perm()"""
 
-        return self.user.has_perm(codename)
+        usr = User()
+        return self.user.has_perm(perm)
 
+    def clear_additional_perms(self):
+        """Clear additional user permissions."""
+
+        if self.is_admin():
+            return
+        elif self.is_mod():
+            perms = Home.MOD_PERMS
+        else:
+            perms = Home.USER_PERMS
+
+        for perm in perms:
+            app_perm = f'budget.{perm[0]}'
+            if self.has_perm(app_perm):
+                perm = Permission.objects.get(codename=perm[0])
+                self.user.user_permissions.remove(perm)
+
+        self.save()
+
+    def add_perm(self, codename: str, commit: bool = True):
+        """Add user permission specified by the codename.
+        Return True if the permission was added or the user already had it."""
+
+        if self.has_perm(f'budget.{codename}'):
+                return True
+
+        try:
+            perm = Permission.objects.get(codename=codename)
+            self.user.user_permissions.add(perm)
+            if commit:
+                self.user.save()
+
+            return True
+        except Permission.DoesNotExist:
+            return False
+
+    def remove_perm(self, codename: str, commit: bool = True):
+        """Remove user permission specified by the codename.
+        Returns True if the permission was removed or the user did not have it."""
+
+        if not self.has_perm(f'budget.{codename}'):
+                return True
+
+        try:
+            perm = Permission.objects.get(codename=codename)
+            self.user.user_permissions.remove(perm)
+            if commit:
+                self.user.save()
+
+            return True
+        except Permission.DoesNotExist:
+            return False
 
 class Label(models.Model):
     """Label model. Home labels do not have a value in the account field and personal labels do. Global labels have neither."""

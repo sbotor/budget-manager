@@ -12,11 +12,12 @@
         {% endif %}
         {% if manage_users and account.id != account.home.admin and account.id != user.account.id %}
         <div class="col-auto">
-            <button class="btn btn-outline-danger" data-bs-toggle="modal"
-                data-bs-target="#removeUser{{ forloop.counter }}">Remove</button>
-        </div>
-        <div class="col-auto">
             <a href="home/{{ account.user.username }}" class="btn btn-primary">Manage</a>
+        </div>
+        
+        <div class="col-auto">
+            <button class="btn btn-danger" data-bs-toggle="modal"
+                data-bs-target="#removeUser{{ forloop.counter }}">Remove</button>
         </div>
         {% endif %}
         {% if make_transactions and account.id != user.account.id %}
