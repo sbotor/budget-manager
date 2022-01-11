@@ -29,6 +29,14 @@
         <div class="col-auto">
             <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#newOpModal">Add new</button>
         </div>
+
+        {% if make_transactions %}
+        <div class="col-auto">
+            <button class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#transactionModal">Make transaction</button>
+            {% include 'budget/user/modals/transaction_modal.html' %}
+        </div>
+        {% endif %}
+
         <div class="col-auto">
             <a href="user/planned" class="btn btn-secondary">Planned operations</a>
         </div>

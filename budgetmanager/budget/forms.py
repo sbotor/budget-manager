@@ -1,5 +1,6 @@
 from django import forms
 from django.contrib.auth.models import User
+from django.db.models import query
 from django.forms import widgets
 from .models import *
 from django.contrib.auth.forms import UserCreationForm
@@ -109,11 +110,38 @@ class TransactionForm(forms.ModelForm):
         fields = ['amount', 'description']
 
     def make_transaction(self, source: Account, destination: Account):
-        if source == destination:
+        """TODO"""
+
+        if not source or not destination or source == destination:
             return None, None
 
         data = self.cleaned_data
         amount = abs(data.get('amount'))
         desc = data.get('description')
-        
+
         return source.make_transaction(destination, amount, desc)
+
+class TransDestinationForm(forms.ModelForm):
+    """TODO"""
+
+    class Meta:
+        model = Operation
+        fields = ['amount', 'description', 'destination']
+
+    destination = forms.ModelChoiceField(queryset=Account.objects.none())
+
+    def make_transaction(self, source: Account):
+        """TODO"""
+
+        data = self.cleaned_data
+        destination = data.get('destination')
+        amount = abs(data.get('amount'))
+        desc = data.get('description')
+
+        return source.make_transaction(destination, amount, desc)
+
+    def update_destinations(self, source: Account):
+        """TODO"""
+
+        self.fields['destination'] = forms.ModelChoiceField(queryset=Account.objects.filter(
+            home=source.home).exclude(id=source.id), label="Destination account")

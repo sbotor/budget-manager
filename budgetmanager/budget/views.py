@@ -12,6 +12,7 @@ from . import forms
 
 from django.core import serializers
 
+
 def index(request: HttpRequest):
     return render(request, 'budget/index.html')
 
@@ -93,13 +94,20 @@ class UserView(BaseUserView):
             account=self.user.account).order_by('-id')[:5]
         context['final_amount'] = self.user.account.final_amount
         context['current_amount'] = self.user.account.current_amount
-        
+
         context['income'] = self.user.account.get_last_year_income()
         context['expenses'] = self.user.account.get_last_year_expenses()
 
         add_op_form = forms.AddOperationForm()
         add_op_form.update_label_choices(self.user)
         context['add_op_form'] = add_op_form
+
+        trans_form = forms.TransDestinationForm()
+        trans_form.update_destinations(self.user.account)
+        context['transaction_form'] = trans_form
+
+        context['make_transactions'] = self.user.has_perm(
+            'budget.make_transactions')
 
         return context
 
@@ -121,6 +129,16 @@ class UserView(BaseUserView):
             if form.is_valid():
                 op = form.save(commit=False)
                 self.user.account.add_operation(operation=op)
+
+        elif post.get('transaction') is not None:
+            form = forms.TransDestinationForm(post)
+            form.update_destinations(self.user.account)
+            valid = False
+            if form.is_valid():
+                outcoming, incoming = form.make_transaction(source=self.user.account)
+                valid = outcoming and incoming
+            if not valid:
+                messages.error(request, 'Invalid transaction form.')
 
         return self.redirect()
 
@@ -253,12 +271,14 @@ class CyclicOperationsView(BaseUserView):
 
         return self.redirect()
 
+
 class BaseHomeView(BaseUserView):
     """Abstract class serving as base for Home-oriented views."""
 
     def setup(self, request: HttpRequest, *args, **kwargs):
         super().setup(request, *args, **kwargs)
         self.home = self.user.account.home
+
 
 class HomeView(BaseHomeView):
     """Class for the user's Home view."""
@@ -278,7 +298,8 @@ class HomeView(BaseHomeView):
         context['manage_users'] = self.user.has_perm('budget.manage_users')
         context['see_other_accounts'] = self.user.has_perm(
             'budget.see_other_accounts')
-        context['make_transactions'] = self.user.has_perm('budget.make_transactions')
+        context['make_transactions'] = self.user.has_perm(
+            'budget.make_transactions')
 
         return context
 
@@ -297,9 +318,9 @@ class HomeView(BaseHomeView):
             destination = Account.objects.get(id=post.get('transaction'))
             valid = False
             if form.is_valid():
-                outcoming, incoming = form.make_transaction(source=self.user.account, destination=destination)
-                if outcoming and incoming:
-                    valid = True
+                outcoming, incoming = form.make_transaction(
+                    source=self.user.account, destination=destination)
+                valid = outcoming and incoming
             if not valid:
                 messages.error('Invalid transaction form.')
 
