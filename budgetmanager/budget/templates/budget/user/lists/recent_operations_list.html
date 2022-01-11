@@ -1,7 +1,7 @@
 <div class="container my-3">
     <div class="row">
         <!--Header-->
-        <div class="container row mx-2"> 
+        <div class="container row mx-2">
             <div class="col-1"><strong>#</strong></div>
             <div class="col-4"><strong>Label</strong></div>
             <div class="col-4"><strong>Amount</strong></div>
@@ -11,11 +11,12 @@
             {%for op in operations%}
             <div class="accordion-item">
                 <h2 class="accordion-header" id="heading{{forloop.counter}}">
-                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{forloop.counter}}" aria-controls="collapse{{forloop.counter}}">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                        data-bs-target="#collapse{{forloop.counter}}" aria-controls="collapse{{forloop.counter}}">
                         <div class="col-1"><strong> {{forloop.counter}} </strong></div>
                         <div class="col-4"> {%if op.label%} {{op.label}} {%else%} - {%endif%}</div>
                         <div class="col-4" style="text-indent:20px"> {{op.amount}} </div>
-                </button>
+                    </button>
                 </h2>
                 <!--Collapsed part-->
                 <div id="collapse{{forloop.counter}}" class="accordion-collapse collapse">
@@ -28,16 +29,21 @@
                                 Finalized: {%if op.final_date%} {{op.final_date}}
                                 {%else%}
                                 Not finalized yet
-                                <button type="submit" class="btn btn-outline-secondary btn-sm mx-3" data-bs-toggle="modal" data-bs-target="#finalizeOperation{{ forloop.counter }}">Finalize now</button>
+                                <button type="submit" class="btn btn-outline-secondary btn-sm mx-3"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#finalizeOperation{{ forloop.counter }}">Finalize now</button>
                                 {%endif%}
                                 <form method="POST" class="mt-3  text-start"> {% csrf_token %}
-                                    <div class="modal fade" id="finalizeOperation{{ forloop.counter }}" data-bs-backdrop="static" data-bs-keyboard="false"
-                                    tab-index="-1" aria-labelledby="finalizeOperationLabel" aria-hidden="true">
+                                    <div class="modal fade" id="finalizeOperation{{ forloop.counter }}"
+                                        data-bs-backdrop="static" data-bs-keyboard="false" tab-index="-1"
+                                        aria-labelledby="finalizeOperationLabel" aria-hidden="true">
                                         <div class="modal-dialog modal-dialog-centered">
                                             <div class="modal-content">
                                                 <div class="modal-header">
-                                                    <h5 class="modal-title" id="finalizeOperationLabel">Confirmation</h5>
-                                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                    <h5 class="modal-title" id="finalizeOperationLabel">Confirmation
+                                                    </h5>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                                        aria-label="Close"></button>
                                                 </div>
                                                 <div class="modal-body">
                                                     Do you want to finalize this operation?<br>
@@ -45,8 +51,10 @@
                                                     Created: {{ op.creation_date }}
                                                 </div>
                                                 <div class="modal-footer">
-                                                    <button type="button" class="btn btn-outline-danger" data-bs-dismiss="modal">Cancel</button>
-                                                    <button type="submit" class="btn btn-secondary" name="fin_id" value="{{ op.id }}">Finalize</button>
+                                                    <button type="button" class="btn btn-outline-danger"
+                                                        data-bs-dismiss="modal">Cancel</button>
+                                                    <button type="submit" class="btn btn-secondary" name="fin_id"
+                                                        value="{{ op.id }}">Finalize</button>
                                                 </div>
                                             </div>
                                         </div>
@@ -55,24 +63,26 @@
                             </div>
                         </div>
                         {%if op.description%}
-                        <div class="row">
-                            <div class="col">Description:</div>
-                        </div>
+                        <div class="col">Description:</div>
                         <div class="row break">
                             <div class="col text-break">{{op.description}}</div>
                         </div>
                         {%endif%}
+
                         <div class="col text-end">
-                            <button class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#removeOperation{{ forloop.counter }}">Remove</button> 
-                        
+                            <button class="btn btn-outline-danger" data-bs-toggle="modal"
+                                data-bs-target="#removeOperation{{ forloop.counter }}">Remove</button>
+
                             <form method="POST" class="p-0 text-start"> {% csrf_token %}
-                                <div class="modal fade" id="removeOperation{{ forloop.counter }}" data-bs-backdrop="static" data-bs-keyboard="false"
-                                tab-index="-1" aria-labelledby="removeOperationLabel" aria-hidden="true">
+                                <div class="modal fade" id="removeOperation{{ forloop.counter }}"
+                                    data-bs-backdrop="static" data-bs-keyboard="false" tab-index="-1"
+                                    aria-labelledby="removeOperationLabel" aria-hidden="true">
                                     <div class="modal-dialog modal-dialog-centered">
                                         <div class="modal-content">
                                             <div class="modal-header">
                                                 <h5 class="modal-title" id="removeOperationLabel">Confirmation</h5>
-                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                                    aria-label="Close"></button>
                                             </div>
                                             <div class="modal-body">
                                                 Do you really want to remove this operation?<br>
@@ -81,8 +91,10 @@
                                                 {% if op.final_date %} <br> Finalized: {{ op.final_date }} {% endif %}
                                             </div>
                                             <div class="modal-footer">
-                                                <button type="button" class="btn btn-outline-danger" data-bs-dismiss="modal">Cancel</button>
-                                                <button type="submit" class="btn btn-danger" name="rm_id" value="{{ op.id }}">Remove</button>
+                                                <button type="button" class="btn btn-outline-danger"
+                                                    data-bs-dismiss="modal">Cancel</button>
+                                                <button type="submit" class="btn btn-danger" name="rm_id"
+                                                    value="{{ op.id }}">Remove</button>
                                             </div>
                                         </div>
                                     </div>

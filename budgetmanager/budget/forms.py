@@ -1,6 +1,5 @@
 from django import forms
 from django.contrib.auth.models import User
-from django.db.models import query
 from django.forms import widgets
 from .models import *
 from django.contrib.auth.forms import UserCreationForm
@@ -19,6 +18,8 @@ class BaseLabelForm(forms.ModelForm):
 
 
 class AddOperationForm(BaseLabelForm):
+    """TODO"""
+
     class Meta:
         model = Operation
         fields = ['finalized', 'amount', 'description', 'label']
@@ -62,6 +63,8 @@ class AddLabelForm(forms.ModelForm):
 
 
 class HomeCreationForm(UserCreationForm):
+    """TODO"""
+
     class Meta:
         model = User
         fields = ['username', 'home_name', 'password1', 'password2']
@@ -85,15 +88,35 @@ class HomeCreationForm(UserCreationForm):
 class ChangeUserPermissionsForm(forms.Form):
     """TODO"""
 
-    def change_perms(account: Account):
+    CHOICES = {
+        ('make_transactions', "Make transactions."),
+    }
+
+    choices = forms.MultipleChoiceField(
+        choices=CHOICES, widget=forms.widgets.CheckboxSelectMultiple, label='Permissions', required=False)
+
+    def change_perms(self, account: Account):
         """TODO"""
 
+        choices = self.cleaned_data.get('choices')
+        print(choices)
+
         pass
+
+    def update_initial(self, account: Account):
+        """Updates the initially selected permissions according to the specified user Account."""
+
+        set_list = []
+        for choice in self.CHOICES:
+            if account.has_perm(f'budget.{choice[0]}'):
+                set_list.append(choice[0])
+
+        self.fields['choices'].initial = set_list
 
 # TODO
 
 
-class ChangeModPermissionsForm(forms.Form):
+class ChangeModPermissionsForm(ChangeUserPermissionsForm):
     """TODO"""
 
     def change_perms(account: Account):
@@ -121,6 +144,7 @@ class TransactionForm(forms.ModelForm):
 
         return source.make_transaction(destination, amount, desc)
 
+
 class TransDestinationForm(forms.ModelForm):
     """TODO"""
 
@@ -128,7 +152,8 @@ class TransDestinationForm(forms.ModelForm):
         model = Operation
         fields = ['amount', 'description', 'destination']
 
-    destination = forms.ModelChoiceField(queryset=Account.objects.none())
+    destination = forms.ModelChoiceField(
+        queryset=Account.objects.none(), label="Destination account")
 
     def make_transaction(self, source: Account):
         """TODO"""
@@ -143,5 +168,5 @@ class TransDestinationForm(forms.ModelForm):
     def update_destinations(self, source: Account):
         """TODO"""
 
-        self.fields['destination'] = forms.ModelChoiceField(queryset=Account.objects.filter(
-            home=source.home).exclude(id=source.id), label="Destination account")
+        self.fields['destination'].queryset = Account.objects.filter(
+            home=source.home).exclude(id=source.id)

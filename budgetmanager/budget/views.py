@@ -118,6 +118,8 @@ class UserView(BaseUserView):
 
         post = request.POST
 
+        #print(post.get('rm_id'))
+
         if post.get('rm_id') is not None:  # Remove an operation
             op_id = post.get('rm_id')
             Operation.objects.get(id=op_id).delete()
@@ -137,7 +139,8 @@ class UserView(BaseUserView):
             form.update_destinations(self.user.account)
             valid = False
             if form.is_valid():
-                outcoming, incoming = form.make_transaction(source=self.user.account)
+                outcoming, incoming = form.make_transaction(
+                    source=self.user.account)
                 valid = outcoming and incoming
             if not valid:
                 messages.error(request, 'Invalid transaction form.')
@@ -385,14 +388,23 @@ class ManageUserView(BaseHomeView):
         context = super().get_context_data(**kwargs)
 
         context['managed_acc'] = self.managed_acc
-        context['is_mod'] = self.managed_acc.is_mod()
+
+        if self.managed_acc.is_mod():
+            context['is_mod'] = True
+            form = forms.ChangeModPermissionsForm()
+        else:
+            context['is_mod'] = False
+            form = forms.ChangeUserPermissionsForm()
+
+        form.update_initial(self.managed_acc)
+        context['perm_form'] = form
 
         return context
 
     def post(self, request: HttpRequest, *args, **kwargs):
         post = request.POST
 
-        print(post)
+        #print(post)
 
         if post.get('change') is not None:
             self._change_perms()
@@ -418,4 +430,8 @@ class ManageUserView(BaseHomeView):
         else:
             form = forms.ChangeUserPermissionsForm(self.request.POST)
 
-        form.change_perms(self.managed_acc)
+        if form.is_valid():
+            form.change_perms(self.managed_acc)
+        else:
+            messages.error(self.request, "Invalid user permissions form.")
+            print(form.errors.as_text())

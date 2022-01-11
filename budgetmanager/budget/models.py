@@ -133,7 +133,7 @@ class Home(models.Model):
         if account.is_mod():
             account.user.groups.remove(group)
 
-        account.user.permissions.clear()
+        account.user.user_permissions.clear()
 
         if commit:
             account.user.save()
@@ -311,7 +311,6 @@ class Account(models.Model):
         if commit:
             plan.save()
             if op is not None:
-                print(op.plan == plan)
                 op.save()
 
         return (plan, op)
@@ -361,6 +360,11 @@ class Account(models.Model):
         incoming.save()
 
         return outcoming, incoming
+
+    def has_perm(self, codename: str):
+        """Checks if the Account's user has a specified permission."""
+
+        return self.user.has_perm(codename)
 
 
 class Label(models.Model):
@@ -505,7 +509,7 @@ class Operation(BaseOperation):
     """Optional foreign key to the OperationPlan model. Present if the operation was created as a result of a plan."""
 
     source = models.ForeignKey('self', on_delete=models.SET_NULL, null=True,
-                               verbose_name='Optional transaction source operation.', related_query_name='destination')
+                               verbose_name='Optional transaction source operation.', related_name='destination')
 
     def save(self, force_insert=False, force_update=False, using=None,
              update_fields=None):

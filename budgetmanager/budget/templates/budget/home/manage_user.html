@@ -16,6 +16,9 @@
     {% else %}
     <button type="submit" class="btn btn-outline-primary col-auto" name="make_mod">Grant Moderator permissions</button>
     {% endif %}
+
+    {{ perm_form|crispy }}
+
     <button type="submit" class="btn btn-success col-auto" name="change">Save</button>
     <button type="submit" class="btn btn-danger col-auto" name="remove">Remove user</button>
 </form>
