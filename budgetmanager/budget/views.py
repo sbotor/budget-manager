@@ -71,7 +71,7 @@ class AddHomeView(BaseTemplateView):
             return render(request, self.template_name, self.get_context_data())
 
 
-@method_decorator(login_required(login_url='/login'), name='setup')
+@method_decorator(login_required(login_url='/login'), name='dispatch')
 class BaseUserView(ABC, BaseTemplateView):
     """Abstract class for user-specific view inheritance."""
 
@@ -277,12 +277,14 @@ class CyclicOperationsView(BaseUserView):
         return self.redirect()
 
 
+@method_decorator(login_required(login_url='/login'), name='dispatch')
 class BaseHomeView(BaseUserView):
     """Abstract class serving as base for Home-oriented views."""
 
     def setup(self, request: HttpRequest, *args, **kwargs):
         super().setup(request, *args, **kwargs)
-        self.home = self.user.account.home
+        if self.user.is_authenticated:
+            self.home = self.user.account.home
 
 
 class HomeView(BaseHomeView):

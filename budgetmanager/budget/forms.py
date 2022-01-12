@@ -67,16 +67,22 @@ class HomeCreationForm(UserCreationForm):
 
     class Meta:
         model = User
-        fields = ['username', 'home_name', 'password1', 'password2']
+        fields = ['home_name', 'currency', 'username', 'password1', 'password2']
 
     home_name = forms.CharField(
         max_length=50,
         label='Home name',
         help_text='Your home\'s name. Maximum length is 50 characters.')
 
+    currency = forms.ChoiceField(
+        choices=Home.Currency.choices, label="Home currency")
+
     def save(self, commit: bool = True):
+        data = self.cleaned_data
+        
         user = super().save(commit=True)
-        home = Home.create_home(self.cleaned_data.get('home_name'), user)
+        home = Home.create_home(home_name=data.get(
+            'home_name'), user=user, currency=data.get('currency'))
 
         if home is None:
             user.delete()
@@ -103,13 +109,14 @@ class ChangeUserPermissionsForm(forms.Form):
         if account.is_admin():
             return
         elif account.is_mod():
-            perms = Home.MOD_PERMS
+            perms = MOD_PERMS
         else:
-            perms = Home.USER_PERMS
+            perms = USER_PERMS
 
         for perm in perms:
             app_perm = f'budget.{perm[0]}'
-            print(f'{perm}, {app_perm}, {account.has_perm(app_perm)}, {perm in choices}')
+            print(
+                f'{perm}, {app_perm}, {account.has_perm(app_perm)}, {perm in choices}')
             if perm[0] in choices and not account.has_perm(app_perm):
                 account.add_perm(codename=perm[0])
             elif perm[0] not in choices and account.has_perm(app_perm):
@@ -120,9 +127,9 @@ class ChangeUserPermissionsForm(forms.Form):
         Returns the sorted list of all available choices as a tuple (codename, description)."""
 
         if account.is_mod():
-            choices = Home.MOD_PERMS
+            choices = MOD_PERMS
         else:
-            choices = Home.USER_PERMS
+            choices = USER_PERMS
 
         choice_list = list(choices)
         choice_list.sort()
@@ -139,8 +146,8 @@ class ChangeUserPermissionsForm(forms.Form):
         set_list = []
         total_list = []
         if account.is_mod():
-            total_list.extend([desc[1] for desc in Home.BASE_MOD_PERMS])
-        
+            total_list.extend([desc[1] for desc in BASE_MOD_PERMS])
+
         for choice in choices:
             app_perm = f'budget.{choice[0]}'
             if account.has_perm(app_perm):

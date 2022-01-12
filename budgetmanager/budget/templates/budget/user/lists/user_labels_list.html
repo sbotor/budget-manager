@@ -1,7 +1,7 @@
 {% load crispy_forms_filters %}
 
 <div class="row">
-    <div class="col-4">
+    <div class="col-4 mb-3">
         <h3>Your personal labels:</h3>
     </div>
 
@@ -28,6 +28,11 @@
                 data-bs-target="#renamePersLabelModal{{ forloop.counter }}">Rename</button>
         </div>
 
+        <div class="col-auto">
+            <button class='btn btn-danger' name="pers_rm_id" data-bs-toggle="modal"
+                data-bs-target="#removeLabel{{ forloop.counter }}">Remove</button>
+        </div>
+
         <!--Rename modal-->
         <form method="POST" class="p-0"> {% csrf_token %}
             <div class="modal fade" id="renamePersLabelModal{{ forloop.counter }}" data-bs-backdrop="static"
@@ -52,11 +57,6 @@
                 </div>
             </div>
         </form>
-
-        <div class="col-auto">
-            <button class='btn btn-danger' name="pers_rm_id" data-bs-toggle="modal"
-                data-bs-target="#removeLabel{{ forloop.counter }}">Remove</button>
-        </div>
 
         <!--Remove modal-->
         <form method="POST" class="p-0"> {% csrf_token %}

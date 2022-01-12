@@ -13,7 +13,7 @@
                     <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
                         data-bs-target="#collapse{{forloop.counter}}" aria-controls="collapse{{forloop.counter}}">
                         <div class="col-4"> {%if op.label%} {{op.label}} {%else%} - {%endif%}</div>
-                        <div class="col-4" style="text-indent:20px"> {{op.amount}} </div>
+                        <div class="col-4" style="text-indent:20px"> {{op.currency_amount}} </div>
                     </button>
                 </h2>
                 <!--Collapsed part-->
@@ -60,7 +60,7 @@
                                             </div>
                                             <div class="modal-body">
                                                 Do you really want to remove this operation?<br>
-                                                Amount: {{ op.amount }}<br>
+                                                Amount: {{ op.currency_amount }}<br>
                                                 Next operation: {{ op.next_date }}
                                             </div>
                                             <div class="modal-footer">

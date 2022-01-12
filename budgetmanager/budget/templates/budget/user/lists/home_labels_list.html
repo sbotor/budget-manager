@@ -1,20 +1,23 @@
 {% load crispy_forms_filters %}
 
-<div class="row">
-    <div class="col-4">
+<div class="row mt-5">
+    <div class="col-4 mb-2">
         <h3>Your Home labels:</h3>
     </div>
 
+    {% if manage_home_labels %}
     <div class="col-auto">
         <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#newHomeLabelModal">Add new</button>
     </div>
     <div class="col-auto">
-        <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#defaultLabelsModal">Restore default</button>
+        <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#defaultLabelsModal">Restore
+            default</button>
     </div>
-    <!--New personal label modal-->
+    <!--New home label modal-->
     {% include 'budget/user/modals/new_home_label_modal.html' %}
     <!--Restore default labels confirmation modal-->
     {% include 'budget/user/modals/default_labels_modal.html' %}
+    {% endif %}
 </div>
 
 <div class="row mb-1 border-bottom border-dark">
@@ -29,12 +32,12 @@
     </div>
     {% if manage_home_labels %}
     {% if not label.is_default %}
-    <div class="col-1">
+    <div class="col-auto">
         <button class="btn btn-outline-secondary" data-bs-toggle="modal"
             data-bs-target="#renameHomeLabelModal{{ forloop.counter }}">Rename</button>
     </div>
     {% endif %}
-    <div class="col-1">
+    <div class="col-auto">
         <button class='btn btn-danger' name="pers_rm_id" data-bs-toggle="modal"
             data-bs-target="#removeHomeLabel{{ forloop.counter }}">Remove</button>
     </div>

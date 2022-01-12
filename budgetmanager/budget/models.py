@@ -7,6 +7,39 @@ from django.utils.translation import gettext_lazy as _
 from django.core.validators import MaxValueValidator, MinValueValidator
 
 
+ADMIN_GROUP = 'home_admin'
+"""Home admin group name."""
+
+MOD_GROUP = 'moderator'
+"""Home moderator group name."""
+
+BASE_MOD_PERMS = {
+    ('see_other_accounts', 'See other users\' accounts'),
+    ('manage_home_labels', 'Manage home labels'),
+    ('make_transactions', 'Send money to another user'),
+}
+"""Base mod permissions codenames."""
+
+MOD_PERMS = {
+    ('make_mod', 'Grant Moderator permissions'),
+    ('plan_for_others', 'Plan operations for other users'),
+    ('manage_users', 'Manage other users'),
+    ('make_mod', 'Grant Moderator permissions')
+}
+"""Additional mod permissions codenames. Can be granted in addition to the base ones."""
+
+BASE_ADMIN_PERMS = {
+    ('manage_home', 'Manage the Home'),
+    ('make_home_admin', 'Pass the admin role to another user'),
+    ('manage_users', 'Manage other users'),
+}
+"""Base admin permissions codenames."""
+
+USER_PERMS = {
+    ('make_transactions', 'Send money to another user')
+}
+"""Additional regular user permissions."""
+
 class Home(models.Model):
     """Home model used for account grouping."""
 
@@ -16,6 +49,14 @@ class Home(models.Model):
             ('make_home_admin', 'Can make a user a home admin.'),
             ('make_mod', 'Can make a user a moderator.'),
         }
+
+    class Currency(models.TextChoices):
+        """Enum class for the currency that the home uses."""
+
+        USD = '$', 'USD'
+        GBP = '£', 'GBP'
+        EUR = '€', 'EUR'
+        PLN = 'zł', 'PLN'
 
     name = models.CharField(max_length=50, verbose_name='Home name')
     """Home name."""
@@ -27,47 +68,17 @@ class Home(models.Model):
     It has no backward relation to the Home object as it can be obtained via the regular Account.home field.
     """
 
-    ADMIN_GROUP = 'home_admin'
-    """Home admin group name."""
-
-    MOD_GROUP = 'moderator'
-    """Home moderator group name."""
-
-    BASE_MOD_PERMS = {
-        ('see_other_accounts', 'See other users\' accounts'),
-        ('manage_home_labels', 'Manage home labels'),
-        ('make_transactions', 'Send money to another user'),
-    }
-    """Base mod permissions codenames."""
-
-    MOD_PERMS = {
-        ('make_mod', 'Grant Moderator permissions'),
-        ('plan_for_others', 'Plan operations for other users'),
-        ('manage_users', 'Manage other users'),
-        ('make_mod', 'Grant Moderator permissions')
-    }
-    """Additional mod permissions codenames. Can be granted in addition to the base ones."""
-
-    BASE_ADMIN_PERMS = {
-        ('manage_home', 'Manage the Home'),
-        ('make_home_admin', 'Pass the admin role to another user'),
-        ('manage_users', 'Manage other users'),
-    }
-    """Base admin permissions codenames."""
-
-    USER_PERMS = {
-        ('make_transactions', 'Send money to another user')
-    }
-    """Additional regular user permissions."""
+    currency = models.CharField(choices=Currency.choices, max_length=5, verbose_name='Home currency')
+    """Home currency for all Accounts."""
 
     def __str__(self):
         return self.name
 
     @staticmethod
-    def create_home(home_name: str, user: User):
+    def create_home(home_name: str, user: User, currency: str):
         """The method used to create a new home and add the administrator User passed as a parameter."""
 
-        home = Home(name=home_name)
+        home = Home(name=home_name, currency=currency)
         admin = Account(user=user, home=home)
         try:
             home.save()
@@ -124,7 +135,7 @@ class Home(models.Model):
     def change_admin(self, account: 'Account'):
         """Changes the Home Admin removing the old one if present. Also grants Moderator permissions."""
 
-        group, created = Group.objects.get_or_create(name=Home.ADMIN_GROUP)
+        group, created = Group.objects.get_or_create(name=ADMIN_GROUP)
         if created:
             Home._setup_admin_group(group)
 
@@ -146,7 +157,7 @@ class Home(models.Model):
     def add_mod(self, account: 'Account', commit: bool = True):
         """TODO"""
 
-        group, created = Group.objects.get_or_create(name=Home.MOD_GROUP)
+        group, created = Group.objects.get_or_create(name=MOD_GROUP)
         if created:
             Home._setup_mod_group(group)
 
@@ -158,7 +169,7 @@ class Home(models.Model):
     def remove_mod(self, account: 'Account', commit: bool = True):
         """TODO"""
 
-        group = Group.objects.get(name=Home.MOD_GROUP)
+        group = Group.objects.get(name=MOD_GROUP)
 
         if account.is_mod():
             account.user.groups.remove(group)
@@ -172,7 +183,7 @@ class Home(models.Model):
     def _setup_admin_group(group: Group):
         """TODO"""
 
-        admin_perms = [Permission.objects.get_or_create(codename=perm[0])[0] for perm in Home.BASE_ADMIN_PERMS]
+        admin_perms = [Permission.objects.get_or_create(codename=perm[0])[0] for perm in BASE_ADMIN_PERMS]
 
         group.permissions.add(*admin_perms)
         group.save()
@@ -181,7 +192,7 @@ class Home(models.Model):
     def _setup_mod_group(group: Group):
         """TODO"""
 
-        mod_perms = [Permission.objects.get_or_create(codename=perm[0])[0] for perm in Home.BASE_MOD_PERMS]
+        mod_perms = [Permission.objects.get_or_create(codename=perm[0])[0] for perm in BASE_MOD_PERMS]
 
         group.permissions.add(*mod_perms)
         group.save()
@@ -214,6 +225,10 @@ class Account(models.Model):
 
     def __str__(self):
         return self.user.username
+
+    def save(self, force_insert: bool = False, force_update: bool = False, using=None, update_fields=None):
+        self.user.save()
+        return super().save(force_insert=force_insert, force_update=force_update, using=using, update_fields=update_fields)
 
     def calculate_final(self):
         """Used to calculate the finalized amount of money in the account including finalized operations."""
@@ -357,12 +372,12 @@ class Account(models.Model):
     def is_admin(self):
         """Checks if the Account's User is a home Admin."""
 
-        return self.user.groups.filter(name=Home.ADMIN_GROUP).exists()
+        return self.user.groups.filter(name=ADMIN_GROUP).exists()
 
     def is_mod(self):
         """Checks if the Account's User is a home Moderator."""
 
-        return self.user.groups.filter(name=Home.MOD_GROUP).exists()
+        return self.user.groups.filter(name=MOD_GROUP).exists()
 
     def make_transaction(self, destination: 'Account', amount: float, description: str = None):
         """TODO"""
@@ -393,9 +408,9 @@ class Account(models.Model):
         if self.is_admin():
             return
         elif self.is_mod():
-            perms = Home.MOD_PERMS
+            perms = MOD_PERMS
         else:
-            perms = Home.USER_PERMS
+            perms = USER_PERMS
 
         for perm in perms:
             app_perm = f'budget.{perm[0]}'
@@ -557,6 +572,9 @@ class BaseOperation(models.Model):
 
         return timezone.now().date()
 
+    def currency_amount(self):
+        return f'{self.amount} {self.account.home.currency}'
+
 
 class Operation(BaseOperation):
     """Operation model. If the operation does not have a `final_date` then it is not finalized."""
@@ -580,7 +598,7 @@ class Operation(BaseOperation):
                              null=True, blank=True, verbose_name='Planned')
     """Optional foreign key to the OperationPlan model. Present if the operation was created as a result of a plan."""
 
-    source = models.ForeignKey('self', on_delete=models.SET_NULL, null=True,
+    source = models.OneToOneField('self', on_delete=models.SET_NULL, null=True,
                                verbose_name='Optional transaction source operation.', related_name='destination')
 
     def save(self, force_insert=False, force_update=False, using=None,
@@ -624,6 +642,23 @@ class Operation(BaseOperation):
 
             self.save()
             self.account.add_to_current(self.amount)
+
+    def is_transaction(self):
+        """Checks if the Operation is an internal transaction."""
+
+        try:
+            return self.source and self.destination
+        except self.DoesNotExist:
+            return False
+
+    def get_destination(self):
+        """Returns the operation destination if the operation is a transaction.
+        If not it does not throw an Error but returns None."""
+
+        if self.is_transaction():
+            return self.destination
+        else:
+            return None
 
 
 class OperationPlan(BaseOperation):

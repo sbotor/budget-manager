@@ -15,7 +15,7 @@
                         data-bs-target="#collapse{{forloop.counter}}" aria-controls="collapse{{forloop.counter}}">
                         <div class="col-1"><strong> {{forloop.counter}} </strong></div>
                         <div class="col-4"> {%if op.label%} {{op.label}} {%else%} - {%endif%}</div>
-                        <div class="col-4" style="text-indent:20px"> {{op.amount}} </div>
+                        <div class="col-4" style="text-indent:20px"> {{op.currency_amount}} </div>
                     </button>
                 </h2>
                 <!--Collapsed part-->
@@ -47,7 +47,7 @@
                                                 </div>
                                                 <div class="modal-body">
                                                     Do you want to finalize this operation?<br>
-                                                    Amount: {{ op.amount }}<br>
+                                                    Amount: {{ op.currency_amount }}<br>
                                                     Created: {{ op.creation_date }}
                                                 </div>
                                                 <div class="modal-footer">
@@ -86,7 +86,7 @@
                                             </div>
                                             <div class="modal-body">
                                                 Do you really want to remove this operation?<br>
-                                                Amount: {{ op.amount }}<br>
+                                                Amount: {{ op.currency_amount }}<br>
                                                 Created: {{ op.creation_date }}
                                                 {% if op.final_date %} <br> Finalized: {{ op.final_date }} {% endif %}
                                             </div>
