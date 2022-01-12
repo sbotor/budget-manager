@@ -391,7 +391,7 @@ class ManageUserView(BaseHomeView):
 
         context['is_mod'] = self.managed_acc.is_mod()
         form = forms.ChangeUserPermissionsForm()
-        form.update_initial(self.managed_acc)
+        context['granted_perms'] = form.update_initial(self.managed_acc)
         context['perm_form'] = form
 
         #print(form.fields)

@@ -116,7 +116,8 @@ class ChangeUserPermissionsForm(forms.Form):
                 account.remove_perm(codename=perm[0])
 
     def update_choices(self, account: Account):
-        """TODO"""
+        """Updates the label choices according to the specified user Account.
+        Returns the sorted list of all available choices as a tuple (codename, description)."""
 
         if account.is_mod():
             choices = Home.MOD_PERMS
@@ -130,18 +131,25 @@ class ChangeUserPermissionsForm(forms.Form):
         return choices
 
     def update_initial(self, account: Account):
-        """Updates the initially selected permissions according to the specified user Account."""
+        """Updates the initially selected permissions according to the specified user Account.
+        Returns the list of granted user permission descritpions."""
 
         choices = self.update_choices(account)
         # print(choices)
         set_list = []
+        total_list = []
+        if account.is_mod():
+            total_list.extend([desc[1] for desc in Home.BASE_MOD_PERMS])
+        
         for choice in choices:
             app_perm = f'budget.{choice[0]}'
             if account.has_perm(app_perm):
-                print('Has perm ' + app_perm)
                 set_list.append(choice[0])
+                total_list.append(choice[1])
 
         self.fields['choices'].initial = set_list
+        print(total_list)
+        return total_list
 
 
 class TransactionForm(forms.ModelForm):

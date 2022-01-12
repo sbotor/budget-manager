@@ -34,7 +34,7 @@ class Home(models.Model):
     """Home moderator group name."""
 
     BASE_MOD_PERMS = {
-        ('see_other_accounts', 'See other users\'s accounts'),
+        ('see_other_accounts', 'See other users\' accounts'),
         ('manage_home_labels', 'Manage home labels'),
         ('make_transactions', 'Send money to another user'),
     }

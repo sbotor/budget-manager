@@ -12,21 +12,43 @@
 <h3 class="row">Manage user {{ managed_acc }}</h3>
 <div class="row">
     {% if is_mod %}
-    <button class="btn btn-outline-danger col-auto mt-3" data-bs-toggle="modal" data-bs-target="#unmakeModModal">Remove Moderator permissions</button>
+    <button class="btn btn-outline-danger col-auto mt-3" data-bs-toggle="modal" data-bs-target="#unmakeModModal">Remove
+        Moderator permissions</button>
     {% include 'budget/home/modals/unmake_mod_confirmation_modal.html' %}
     {% else %}
-    <button class="btn btn-primary col-auto mt-3" data-bs-toggle="modal" data-bs-target="#makeModModal">Grant Moderator permissions</button>
+    <button class="btn btn-primary col-auto mt-3" data-bs-toggle="modal" data-bs-target="#makeModModal">Grant Moderator
+        permissions</button>
     {% include 'budget/home/modals/make_mod_confirmation_modal.html' %}
     {% endif %}
 
     <form method="POST" class="row mt-3"> {% csrf_token %}
-        <h3 class="mb-1">Specific user permissions</h3>
-        {{ perm_form|crispy }}
-        <button type="submit" class="btn btn-success col-auto" name="change">Save</button>
+        <h4 class="mb-1">Specific user permissions</h3>
+            {{ perm_form|crispy }}
+            <button type="submit" class="btn btn-success col-auto" name="change">Save</button>
     </form>
+
+    <div class="container row">
+        <h4 class="row mt-3 mb-2">Granted user permissions</h4>
+        <ul class="list-group col-auto">
+            {% for perm in granted_perms %}
+
+            <li class="list-group-item">{{ perm }}</li>
+
+            {% empty %}
+            <h5 class="row mt-1 ms-1">None</h5>
+            {% endfor %}
+        </ul>
+    </div>
 </div>
-<div class="row">
-    <button class="btn btn-danger col-auto mt-5" data-bs-toggle="modal" data-bs-target="#removeUserModal">Remove user</button>
-    {% include 'budget/home/modals/remove_user_confirmation_modal.html' %}
+
+<div class="container row">
+    <h4 class="row mb-2 mt-5">Remove user
+        <div class="row">
+            <button class="btn btn-danger col-auto" data-bs-toggle="modal" data-bs-target="#removeUserModal">Remove
+                user</button>
+            {% include 'budget/home/modals/remove_user_confirmation_modal.html' %}
+        </div>
 </div>
+
+
 {% endblock %}
