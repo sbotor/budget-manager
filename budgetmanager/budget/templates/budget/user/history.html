@@ -12,12 +12,19 @@
     </div>
     
     <div class="row">
-        <div class="col-auto">
+        <div class="col-12 col-md-7">
             <h3>History of Your operations</h3>
         </div>
+        
+        <!--New operation modal-->
+        <div class="col-3 col-md-2">
+            <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#newOpModal">Add new</button>
+            {% include 'budget/user/modals/new_operation_modal.html' %}
+        </div>
+
         <!-- Finalize all button-->
-        <div class="col text-end">
-            <button class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#finalizeAll">Finalize all transactions</button> <!--Delete 'disabled' when function is ready-->
+        <div class="col-4 col-md-3">
+            <button class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#finalizeAll">Finalize all transactions</button>
         
             <form method="POST" class="p-0 text-start"> {% csrf_token %}
                 <div class="modal fade" id="finalizeAll" data-bs-backdrop="static" data-bs-keyboard="false"

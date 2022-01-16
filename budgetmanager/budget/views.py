@@ -168,6 +168,10 @@ class OpHistoryView(BaseUserView):
 
         context['operations'] = self.user.account.get_operations()
 
+        add_op_form = forms.AddOperationForm()
+        add_op_form.update_label_choices(self.user)
+        context['add_op_form'] = add_op_form
+
         return context
 
     def post(self, request: HttpRequest, *args, **kwargs):
@@ -179,6 +183,8 @@ class OpHistoryView(BaseUserView):
             Operation.objects.get(id=op_id).finalize()
         elif request.POST.get('fin_all') is not None:
             self.user.account.finalize_operations()
+        elif request.POST.get('add_operation') is not None:  # Add a new operation
+            self.add_operation()
 
         return self.redirect()
 
