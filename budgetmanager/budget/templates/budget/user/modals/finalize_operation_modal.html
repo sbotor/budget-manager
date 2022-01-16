@@ -1,0 +1,25 @@
+{% load crispy_forms_filters %}
+
+<form method="POST" class="mt-3  text-start"> {% csrf_token %}
+    <div class="modal fade" id="finalizeOperation{{ forloop.counter }}"
+        data-bs-backdrop="static" data-bs-keyboard="false" tab-index="-1"
+        aria-labelledby="finalizeOperationLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="finalizeOperationLabel">Confirmation</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    Do you want to finalize this operation?<br>
+                    Amount: {{ op.currency_amount }}<br>
+                    Created: {{ op.creation_date }}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-danger" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-secondary" name="fin_id" value="{{ op.id }}">Finalize</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
