@@ -708,7 +708,7 @@ class Operation(BaseOperation):
         """Checks if the Operation is an internal transaction."""
 
         try:
-            return self.source and self.destination
+            return bool(self.source or self.destination) or False
         except self.DoesNotExist:
             return False
 

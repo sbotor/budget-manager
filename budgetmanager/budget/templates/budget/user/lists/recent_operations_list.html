@@ -66,6 +66,23 @@
                                 </form>
                             </div>
                         </div>
+
+                        {%if op.is_transaction %}
+                            {%if op.source %}
+                            <div class="row mb-3">
+                                <div class="col">
+                                Transfer recieved from: {{op.source.account.get_username}}
+                                </div>
+                            </div>
+                            {%else%}
+                            <div class="row mb-3">
+                                <div class="col">
+                                Transfer sent to: {{op.get_destination.account.get_username}}
+                                </div>
+                            </div>
+                            {%endif%}
+                        {%endif%}
+
                         {%if op.description%}
                         <div class="col">Description:</div>
                         <div class="row break">
