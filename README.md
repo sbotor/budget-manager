@@ -1,13 +1,13 @@
 # budget-manager
-<h3>Requirements</h3>
+### Requirements
 
 - Download Python
-- Set up a virtual environment (for example with venv: https://docs.python.org/3/tutorial/venv.html). It is not really that important, can be omitted.
+- Set up a virtual environment (for example with [venv](https://docs.python.org/3/tutorial/venv.html)). It is not really that important, can be omitted.
 - Download the requirements with pip:
-  - <i>pip install -r requirements.txt</i>
+  - `pip install -r requirements.txt`
 - Create a key.txt file in the project root folder and paste a valid secret key (a key generator can be used).
 
-<h3>How does it work?</h3>
+### How does it work?
 A Django project is made up of semi-isolated apps that provide some separate functionality. In the root project folder there is another folder with the same name as the project. All the project settings are there and also some other stuff. There are also the apps folders and a manage.py script which acts as a command line interface of the whole project.
   
 Django is based on a Model-View-Template pattern and basically works like this:
@@ -20,21 +20,25 @@ Django is based on a Model-View-Template pattern and basically works like this:
     - If statements and for loops can be used, other things as well.
 5. An HTTP response is sent and the client may be redirected to another page.
 
-<h3>Running the project</h3>
+### Running the project
 Everything is done by providing arguments to the manage.py script. First you have to make migrations (prepare the database scripts):
 
-- <i>python manage.py makemigrations</i>
+- `python manage.py makemigrations`
 
 Then the database has to be created and updated:
-- <i>python manage.py migrate</i>
+- `python manage.py migrate`
+
+This can also be done by running the custom *loaddb* command:
+- `python manage.py loaddb`
+- `python manage.py loaddb -c` <-- **This completely clears the database and creates a new fresh one!**
 
 Finally, the server can start:
-- <i>python manage.py runserver</i>
+- `python manage.py runserver`
 
 This will create the db and server locally on port 8000.
 
-<h3>Help</h3>
+### Help
 
-- https://docs.djangoproject.com/en/4.0/
-- https://getbootstrap.com/docs/5.1/getting-started/introduction/
-- https://docs.python.org/3/
+- [Django](https://docs.djangoproject.com/en/4.0/)
+- [Bootstrap](https://getbootstrap.com/docs/5.1/getting-started/introduction/)
+- [Python](https://docs.python.org/3/)
