@@ -6,12 +6,12 @@
 {% block content %}
 <div class="row">
     {% if see_other_accounts %}
-    <h3 class="col-auto">List of users in {{ user.account.home.name }}</h3>
-    {% if manage_users %}
-    <button class="btn btn-success col-auto" data-bs-toggle="modal" data-bs-target="#newUser">Add new user</button>
-    {% include 'budget/home/modals/new_user_modal.html' %}
-    {% endif %}
-    {% include 'budget/home/lists/home_users_list.html' %}
+        <h3 class="col-auto">List of users in {{ user.account.home.name }}</h3>
+        {% if manage_users %}
+            <button class="btn btn-success col-auto" data-bs-toggle="modal" data-bs-target="#newUser">Add new user</button>
+            {% include 'budget/home/modals/new_user_modal.html' %}
+        {% endif %}
+        {% include 'budget/home/lists/home_users_list.html' %}
     {% endif %}
 </div>
 {% endblock %}

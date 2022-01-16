@@ -3,17 +3,18 @@
 <div class="container">
     <ul clas="mt-3 list-group col-auto">
         {% for account in accounts %}
-        <li class="list-group-item mt-3 col-auto container">
-            <div class="row">
-                <div class="col-auto">{{ account.user }}{% if account.id == user.account.id %} <b>(You)</b>{% endif %}
+        <li class="list-group-item">
+            <div class="row m-2">
+                <div class="col-auto">
+                    {{ account.user }} {% if account.id == user.account.id %} <b>(You)</b>{% endif %}
                 </div>
                 {% if make_transactions and account.id != user.account.id %}
-                <div class="col-auto">
-                    <button class="btn btn-outline-success" data-bs-toggle="modal"
-                        data-bs-target="#transactionModal">Send
-                        money</button>
-                </div>
+                    <div class="col-auto">
+                        <button class="btn btn-outline-success btn-sm" data-bs-toggle="modal"
+                            data-bs-target="#transactionModal">Send money</button>
+                    </div>
                 {% endif %}
+
                 {% if manage_users and account.id != account.home.admin.id and account.id != user.account.id %}
                 <div class="col-auto">
                     <a href="home/{{ account.user.username }}" class="btn btn-primary">Manage</a>
@@ -24,57 +25,60 @@
                         data-bs-target="#removeUser{{ forloop.counter }}">Remove</button>
                 </div>
                 {% endif %}
+
             </div>
         </li>
-        {% if make_transactions and account.id != user.account.id %}
-        <form class="col-auto" method="POST"> {% csrf_token %}
-            <div class="modal fade" id="transactionModal" data-bs-backdrop="static" data-bs-keyboard="false"
-                tab-index="-1" aria-labelledby="transactionModalLabel" aria-hidden="true">
-                <div class="modal-dialog">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title" id="transactionModalLabel">Make transaction</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                        </div>
-                        <div class="modal-body">
-                            {{ transaction_form|crispy }}
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-danger" data-bs-dismiss="modal">Cancel</button>
-                            <button type="submit" class="btn btn-success" name="transaction"
-                                value="{{ account.id }}">Send</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </form>
-        {% endif %}
-
-        {% if manage_users and account.id != account.home.admin and account.id != user.account.id %}
-        <form class="col-auto" method="POST"> {% csrf_token %}
-            <div class="modal fade" id="removeUser{{ forloop.counter }}" data-bs-backdrop="static"
-                data-bs-keyboard="false" tab-index="-1" aria-labelledby="removeUserLabel" aria-hidden="true">
-                <div class="modal-dialog modal-dialog-centered">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title" id="removeUserLabel">Confirmation</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                        </div>
-                        <div class="modal-body">
-                            Do you really want to remove user {{ account.user.username }}?<br><br>
-                            <b>This cannot be undone.</b>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-outline-danger" data-bs-dismiss="modal">Cancel</button>
-                            <button type="submit" class="btn btn-danger" name="rm_id"
-                                value="{{ account.id }}">Remove</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </form>
-        {% endif %}
         {% endfor %}
     </ul>
+
+    <!-- Forms -->
+    {% if make_transactions and account.id != user.account.id %}
+    <form class="col-auto" method="POST"> {% csrf_token %}
+        <div class="modal fade" id="transactionModal" data-bs-backdrop="static" data-bs-keyboard="false"
+            tab-index="-1" aria-labelledby="transactionModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="transactionModalLabel">Make transaction</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        {{ transaction_form|crispy }}
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-danger" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-success" name="transaction"
+                            value="{{ account.id }}">Send</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+    {% endif %}
+
+    {% if manage_users and account.id != account.home.admin and account.id != user.account.id %}
+    <form class="col-auto" method="POST"> {% csrf_token %}
+        <div class="modal fade" id="removeUser{{ forloop.counter }}" data-bs-backdrop="static"
+            data-bs-keyboard="false" tab-index="-1" aria-labelledby="removeUserLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="removeUserLabel">Confirmation</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        Do you really want to remove user {{ account.user.username }}?<br><br>
+                        <b>This cannot be undone.</b>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-danger" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-danger" name="rm_id"
+                            value="{{ account.id }}">Remove</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+    {% endif %}
 
 </div>
