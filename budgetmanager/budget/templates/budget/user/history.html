@@ -15,6 +15,31 @@
         <div class="col-auto">
             <h3>History of Your operations</h3>
         </div>
+        <!-- Finalize all button-->
+        <div class="col text-end">
+            <button class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#finalizeAll">Finalize all transactions</button> <!--Delete 'disabled' when function is ready-->
+        
+            <form method="POST" class="p-0 text-start"> {% csrf_token %}
+                <div class="modal fade" id="finalizeAll" data-bs-backdrop="static" data-bs-keyboard="false"
+                tab-index="-1" aria-labelledby="finalizeAllLabel" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="finalizeAllLabel">Confirmation</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                Do you really want to finalize all unfinalized operations?<br>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-outline-danger" data-bs-dismiss="modal">Cancel</button>
+                                <button type="submit" class="btn btn-secondary" name="fin_all" value="0">Finalize</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
     </div>
     
     <!--Table-->
@@ -97,6 +122,16 @@
                                     <div class="my-3 text-break">{{op.description}}</div>
                                 </div>
                             </div>
+                            {%if op.source != NULL%}
+                            <div class="row">
+                                <div class="col border border-dark border-start-0 border-top-0 border-bottom-0 text-end">
+                                    <div class="my-3">Transaction from:</div> 
+                                </div>
+                                <div class="col">
+                                    <div class="my-3 text-break">{{op.source.account.user.username}}</div>
+                                </div>
+                            </div>
+                            {%endif%}
 
                             <!-- Template for new rows
                             <div class="row">

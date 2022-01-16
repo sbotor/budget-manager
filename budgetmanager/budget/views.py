@@ -177,6 +177,8 @@ class OpHistoryView(BaseUserView):
         elif request.POST.get('fin_id') is not None:
             op_id = request.POST.get('fin_id')
             Operation.objects.get(id=op_id).finalize()
+        elif request.POST.get('fin_all') is not None:
+            self.user.account.finalize_operations()
 
         return self.redirect()
 

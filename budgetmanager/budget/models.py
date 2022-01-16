@@ -310,6 +310,13 @@ class Account(ConvenienceModel):
 
         return expenses
 
+    def finalize_operations(self):
+        operations = Operation.objects.filter(
+            account=self).filter(final_date=None)
+        for op in operations:
+            op.finalize()
+        return
+
     def add_to_current(self, amount: float, commit: bool = True):
         """Used to add the specified value to the current account. Return the new `current_amount`.
 

@@ -14,7 +14,15 @@
                     <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
                         data-bs-target="#collapse{{forloop.counter}}" aria-controls="collapse{{forloop.counter}}">
                         <div class="col-1"><strong> {{forloop.counter}} </strong></div>
-                        <div class="col-4"> {%if op.label%} {{op.label}} {%else%} - {%endif%}</div>
+                        <div class="col-4">
+                             {%if op.label%} {{op.label}}
+                             {%else%}
+                                {%if op.source != NULL%}
+                                    {{op.source.account.user.username}} <!-- TODO: check later if this works, bc now the transactions doesn't work -->
+                                {%else%} -
+                                {%endif%} 
+                             {%endif%}
+                        </div>
                         <div class="col-4" style="text-indent:20px"> {{op.currency_amount}} </div>
                     </button>
                 </h2>
@@ -69,6 +77,7 @@
                         </div>
                         {%endif%}
 
+                        <!-- Remove button -->
                         <div class="col text-end">
                             <button class="btn btn-outline-danger" data-bs-toggle="modal"
                                 data-bs-target="#removeOperation{{ forloop.counter }}">Remove</button>
