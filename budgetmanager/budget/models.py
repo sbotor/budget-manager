@@ -601,7 +601,7 @@ class Label(ConvenienceModel):
 
         qset = Label.objects.filter(home=None)
 
-        return qset.objects.get(name=name) if name else qset
+        return qset.get(name=name) if name else qset
 
     def _init_global():
         """Initializes global labels."""

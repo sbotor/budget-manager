@@ -16,11 +16,7 @@
                         <div class="col-1"><strong> {{forloop.counter}} </strong></div>
                         <div class="col-4">
                              {%if op.label%} {{op.label}}
-                             {%else%}
-                                {%if op.source != NULL%}
-                                    {{op.source.account.user.username}} <!-- TODO: check later if this works, bc now the transactions doesn't work -->
-                                {%else%} -
-                                {%endif%} 
+                             {%else%} -
                              {%endif%}
                         </div>
                         <div class="col-4" style="text-indent:20px"> {{op.currency_amount}} </div>
