@@ -120,6 +120,27 @@
                                     </div>
                                 </div>
                             </div>
+
+                            <!-- Transaction info -->
+                            {%if op.is_transaction %}
+                            <div class="row">
+                                <div class="col border border-dark border-start-0 border-top-0 border-bottom-0 text-end">
+                                    {%if op.source %}
+                                    <div class="my-3">Transfer recieved from:</div>
+                                    {%else%}
+                                    <div class="my-3">Transfer sent to:</div>
+                                    {%endif%}
+                                </div>
+                                <div class="col">
+                                    {%if op.source %}
+                                    <div class="my-3 text-break">{{op.source.account.get_username}}</div>
+                                    {%else%}
+                                    <div class="my-3 text-break">{{op.get_destination.account.get_username}}</div>
+                                    {%endif%}
+                                </div>
+                            </div>
+                            {%endif%}
+
                             <!--Description-->
                             <div class="row">
                                 <div class="col border border-dark border-start-0 border-top-0 border-bottom-0 text-end">
@@ -129,16 +150,6 @@
                                     <div class="my-3 text-break">{{op.description}}</div>
                                 </div>
                             </div>
-                            {%if op.source != NULL%}
-                            <div class="row">
-                                <div class="col border border-dark border-start-0 border-top-0 border-bottom-0 text-end">
-                                    <div class="my-3">Transaction from:</div> 
-                                </div>
-                                <div class="col">
-                                    <div class="my-3 text-break">{{op.source.account.user.username}}</div>
-                                </div>
-                            </div>
-                            {%endif%}
 
                             <!-- Template for new rows
                             <div class="row">
