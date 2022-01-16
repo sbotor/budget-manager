@@ -7,7 +7,7 @@
         </div>
 
         <div class="accordion border border-dark border-start-0 border-end-0 border-bottom-0">
-            {%for op in operations%}
+            {% for op in operations %}
             <div class="accordion-item">
                 <h2 class="accordion-header" id="heading{{forloop.counter}}">
                     <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
@@ -24,7 +24,7 @@
                             <div class="col">Frequency:</div>
                         </div>
                         <div class="row break">
-                            <div class="col text-break">{{ op.period_count }} / {{ op.period }}</div>
+                            <div class="col text-break">{{ op.get_frequency }}</div>
                         </div>
 
                         {%if op.description%}
@@ -32,7 +32,7 @@
                             <div class="col">Description:</div>
                         </div>
                         <div class="row break">
-                            <div class="col text-break">{{op.description}}</div>
+                            <div class="col text-break">{{ op.description }}</div>
                         </div>
                         {%endif%}
 

@@ -5,7 +5,7 @@
 
 {% block content %}
 {% load static %}
-<h3>Hello, {{ user.name|default:user.username }}</h3>
+<h3>Hello, {{ user.account.get_username }}</h3>
 <div class="container">
     <!--Info header and label menu (?)-->
     <div class="row">

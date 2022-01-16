@@ -8,6 +8,7 @@ from django.core.management import call_command
 # Create your tests here.
 from django.test import TestCase
 from .models import *
+from .utils import today
 
 from freezegun import freeze_time
 
@@ -15,7 +16,7 @@ from freezegun import freeze_time
 class PlanCommandTest(TestCase):
 
     def setUp(self):
-        self.initial_date = OperationPlan.datetime_today()
+        self.initial_date = today()
         self.dates = {
             'D': self.initial_date + timedelta(days=1),
             'W': self.initial_date + timedelta(days=7),

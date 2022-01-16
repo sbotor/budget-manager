@@ -1,8 +1,10 @@
 from django import forms
 from django.contrib.auth.models import User
 from django.forms import widgets
-from .models import *
 from django.contrib.auth.forms import UserCreationForm
+
+from .models import *
+from .utils import today
 
 
 class BaseLabelForm(forms.ModelForm):
@@ -30,7 +32,7 @@ class AddOperationForm(BaseLabelForm):
         """Overriden method to check if the operation should be finalized and update accordingly."""
 
         if self.cleaned_data.get('finalized'):
-            self.instance.final_date = Operation.datetime_today()
+            self.instance.final_date = today()
 
         return super().save(commit=commit)
 
@@ -44,12 +46,13 @@ class PlanCyclicOperationForm(BaseLabelForm):
                   'period_count', 'next_date', 'description']
 
     next_date = forms.DateField(required=False,
-                                label="Starting day", widget=widgets.SelectDateWidget)
+                                label="Starting day", widget=widgets.SelectDateWidget,
+                                help_text='Leave blank for today.')
 
     def save(self, commit: bool = True):
 
         if self.cleaned_data.get('next_date') is None:
-            self.instance.next_date = OperationPlan.datetime_today()
+            self.instance.next_date = today()
 
         return super().save(commit=commit)
 
@@ -67,7 +70,8 @@ class HomeCreationForm(UserCreationForm):
 
     class Meta:
         model = User
-        fields = ['home_name', 'currency', 'username', 'password1', 'password2']
+        fields = ['home_name', 'currency',
+                  'username', 'password1', 'password2']
 
     home_name = forms.CharField(
         max_length=50,
@@ -79,7 +83,7 @@ class HomeCreationForm(UserCreationForm):
 
     def save(self, commit: bool = True):
         data = self.cleaned_data
-        
+
         user = super().save(commit=True)
         home = Home.create_home(home_name=data.get(
             'home_name'), user=user, currency=data.get('currency'))
@@ -126,11 +130,8 @@ class ChangeUserPermissionsForm(forms.Form):
         """Updates the label choices according to the specified user Account.
         Returns the sorted list of all available choices as a tuple (codename, description)."""
 
-        if account.is_mod():
-            choices = MOD_PERMS
-        else:
-            choices = USER_PERMS
-
+        choices = MOD_PERMS if account.is_mod() else USER_PERMS
+        
         choice_list = list(choices)
         choice_list.sort()
         self.fields['choices'].choices = choice_list

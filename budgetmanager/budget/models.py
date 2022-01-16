@@ -1,11 +1,11 @@
 from datetime import date, datetime, timedelta
-from django.db import models, IntegrityError
+from django.db import models, IntegrityError, transaction
 from django.db.models.query_utils import Q
-from django.utils import timezone
 from django.contrib.auth.models import Permission, Group, User
 from django.utils.translation import gettext_lazy as _
 from django.core.validators import MaxValueValidator, MinValueValidator
 
+from .utils import today
 
 ADMIN_GROUP = 'home_admin'
 """Home admin group name."""
@@ -40,7 +40,20 @@ USER_PERMS = {
 }
 """Additional regular user permissions."""
 
-class Home(models.Model):
+
+class ConvenienceModel(models.Model):
+    """Class implementing convenience methods common to all models."""
+
+    class Meta:
+        abstract = True
+
+    def is_saved(self):
+        """Checks if the model exists in the database."""
+
+        return not self._state.adding
+
+
+class Home(ConvenienceModel):
     """Home model used for account grouping."""
 
     class Meta:
@@ -68,7 +81,8 @@ class Home(models.Model):
     It has no backward relation to the Home object as it can be obtained via the regular Account.home field.
     """
 
-    currency = models.CharField(choices=Currency.choices, max_length=5, verbose_name='Home currency')
+    currency = models.CharField(
+        choices=Currency.choices, max_length=5, verbose_name='Home currency')
     """Home currency for all Accounts."""
 
     def __str__(self):
@@ -90,9 +104,9 @@ class Home(models.Model):
             return home
         except IntegrityError:
             # Clean up and return None
-            if not admin._state.adding:
+            if admin._state.adding:
                 admin.delete()
-            if not home._state.adding:
+            if not home.is_saved():
                 home.delete()
             return None
 
@@ -102,9 +116,9 @@ class Home(models.Model):
         If `home_only` is False no personal labels are returned.
         """
 
-        queryset = Label.objects.filter(home=self).order_by('name')
+        queryset = Label.objects.filter(home=self)
         if home_only:
-            queryset = queryset.filter(account=None).order_by('name')
+            queryset = queryset.filter(account=None)
 
         return queryset
 
@@ -183,7 +197,8 @@ class Home(models.Model):
     def _setup_admin_group(group: Group):
         """TODO"""
 
-        admin_perms = [Permission.objects.get_or_create(codename=perm[0])[0] for perm in BASE_ADMIN_PERMS]
+        admin_perms = [Permission.objects.get_or_create(
+            codename=perm[0])[0] for perm in BASE_ADMIN_PERMS]
 
         group.permissions.add(*admin_perms)
         group.save()
@@ -192,13 +207,14 @@ class Home(models.Model):
     def _setup_mod_group(group: Group):
         """TODO"""
 
-        mod_perms = [Permission.objects.get_or_create(codename=perm[0])[0] for perm in BASE_MOD_PERMS]
+        mod_perms = [Permission.objects.get_or_create(
+            codename=perm[0])[0] for perm in BASE_MOD_PERMS]
 
         group.permissions.add(*mod_perms)
         group.save()
 
 
-class Account(models.Model):
+class Account(ConvenienceModel):
     """The model of the user account."""
 
     class Meta:
@@ -228,7 +244,7 @@ class Account(models.Model):
 
     def save(self, force_insert: bool = False, force_update: bool = False, using=None, update_fields=None):
         self.user.save()
-        return super().save(force_insert=force_insert, force_update=force_update, using=using, update_fields=update_fields)
+        super().save(force_insert=force_insert, force_update=force_update, using=using, update_fields=update_fields)
 
     def calculate_final(self):
         """Used to calculate the finalized amount of money in the account including finalized operations."""
@@ -240,6 +256,11 @@ class Account(models.Model):
             total += float(op.amount)
 
         return total
+
+    def get_username(self):
+        """Shows the user's username or first name if exists."""
+
+        return self.user.first_name or self.user.username
 
     def calculate_current(self):
         """Used to calculate the current amount of money excluding unfinalized operations."""
@@ -254,13 +275,16 @@ class Account(models.Model):
         return total
 
     def get_last_year_income(self):
+        """TODO"""
+
         operations = Operation.objects.filter(
             account=self).exclude(final_date=None)
 
-        income = [0,0,0,0,0,0,0,0,0,0,0,0]        
+        income = [0] * 12
 
         for op in operations:
-            difference = timezone.now().today().year - op.final_date.year
+            difference = today().year - op.final_date.year
+            
             if difference <= 1:
                 month = op.final_date.month
                 if op.amount > 0:
@@ -269,14 +293,17 @@ class Account(models.Model):
         return income
 
     def get_last_year_expenses(self):
+        """TODO"""
+
         operations = Operation.objects.filter(
             account=self).exclude(final_date=None)
 
-        expenses = [0,0,0,0,0,0,0,0,0,0,0,0]
+        expenses = [0] * 12
 
         for op in operations:
-            difference = timezone.now().today().year - op.final_date.year
-            if timezone.now().today().year - op.final_date.year < 1 and timezone.now().today().month >= op.final_date.month:
+            difference = today().year - op.final_date.year
+            
+            if difference < 1 and today().month >= op.final_date.month:
                 month = op.final_date.month
                 if op.amount < 0:
                     expenses[month-1] += -1*float(op.amount)
@@ -315,7 +342,7 @@ class Account(models.Model):
 
         if include_home:
             q = Q(home=self.home) & Q(account=None) | Q(account=self)
-            return Label.objects.filter(q).order_by('name')
+            return Label.objects.filter(q)
         else:
             return Label.objects.filter(account=self)
 
@@ -332,22 +359,39 @@ class Account(models.Model):
         return operation
 
     def add_operation_plan(self, plan: 'OperationPlan', commit: bool = True):
-        """TODO"""
+        """Adds an operation plan to the account and saves it if `commit` is True."""
 
         plan.account = self
-        op = None
-        now = OperationPlan.datetime_today()
-
-        if plan.next_date == now:
-            op = plan.create_operation(commit=False)
-            plan.next_date = plan.calculate_next(base_date=now)
 
         if commit:
             plan.save()
-            if op is not None:
-                op.save()
 
-        return (plan, op)
+        return plan
+
+    def _update_plans(self):
+        """Checks if there are due operation plans for the account and creates operations.
+        
+        Returns a tuple of lists: `([plans], [operations])` consisting of the updated plans and created operations.
+        The lists can be empty."""
+
+        qset = OperationPlan.objects.filter(account=self).filter(next_date__lte=today())
+        if not qset:
+            return [], []
+
+        plans = []
+        ops = []
+
+        for plan in qset:
+            
+            while plan.is_due():
+                op = plan.create_operation()
+                ops.append(op)
+
+            plans.append(plan)
+
+        print(plans)
+        print(ops)
+        return plans, ops
 
     def add_label(self, label: 'Label', commit: bool = True):
         """Add a new personal label to the database. Returns the newly added Label.
@@ -380,26 +424,35 @@ class Account(models.Model):
         return self.user.groups.filter(name=MOD_GROUP).exists()
 
     def make_transaction(self, destination: 'Account', amount: float, description: str = None):
-        """TODO"""
+        """Creates a transaction composed of two new operations with the specified description.
+
+        The amount is subtracted from the account and added to the destination account."""
 
         label = Label.get_global(name=('Internal'))
 
         outcoming = Operation(account=self, amount=-amount,
-                              description=description, final_date=Operation.datetime_today(), label=label)
+                              description=description, final_date=today(), label=label)
         incoming = Operation(account=destination, amount=amount,
-                             description=description, final_date=Operation.datetime_today(), label=label)
+                             description=description, final_date=today(), label=label)
 
-        outcoming.save()
-        incoming.source = outcoming
-        incoming.save()
+        try:
+            outcoming.save()
+            incoming.source = outcoming
+            incoming.save()
+        except:
+            if outcoming.is_saved():
+                outcoming.delete()
+            if incoming.is_saved():
+                incoming.delete()
+
+            return None, None
 
         return outcoming, incoming
 
     def has_perm(self, perm: str):
         """Checks if the Account's user has a specified permission.
-        Shorthand for *.user.has_perm()"""
+        Shortcut for `.user.has_perm()`."""
 
-        usr = User()
         return self.user.has_perm(perm)
 
     def clear_additional_perms(self):
@@ -425,7 +478,7 @@ class Account(models.Model):
         Return True if the permission was added or the user already had it."""
 
         if self.has_perm(f'budget.{codename}'):
-                return True
+            return True
 
         try:
             perm = Permission.objects.get(codename=codename)
@@ -442,7 +495,7 @@ class Account(models.Model):
         Returns True if the permission was removed or the user did not have it."""
 
         if not self.has_perm(f'budget.{codename}'):
-                return True
+            return True
 
         try:
             perm = Permission.objects.get(codename=codename)
@@ -454,13 +507,27 @@ class Account(models.Model):
         except Permission.DoesNotExist:
             return False
 
-class Label(models.Model):
+    def get_operations(self):
+        """Updates the operation plans and returns this Account's operations as a QuerySet."""
+
+        self._update_plans()
+        return Operation.objects.filter(account=self)
+
+    def get_plans(self):
+        """Updates the operation plans and returns this Account's operation plans as a QuerySet."""
+
+        self._update_plans()
+        return OperationPlan.objects.filter(account=self)
+
+
+class Label(ConvenienceModel):
     """Label model. Home labels do not have a value in the account field and personal labels do. Global labels have neither."""
 
     class Meta:
         permissions = {
             ('manage_home_labels', 'Can create or delete home labels.')
         }
+        ordering = ('name', 'id')
 
     name = models.CharField(max_length=32, verbose_name='Label name')
     """Label name."""
@@ -504,10 +571,7 @@ class Label(models.Model):
     def __str__(self):
         prefix = ''
         if self.account is None:
-            if self.home is not None:
-                prefix = '[H] '
-            else:
-                prefix = '[G] '
+            prefix = '[H]' if self.home else '[G]'
 
         return prefix + self.name
 
@@ -530,10 +594,7 @@ class Label(models.Model):
 
         qset = Label.objects.filter(home=None)
 
-        if name:
-            return qset.get(name=name)
-        else:
-            return qset
+        return qset.objects.get(name=name) if name else qset
 
     def _init_global():
         """Initializes global labels."""
@@ -542,7 +603,7 @@ class Label(models.Model):
             Label.objects.get_or_create(name=name, home=None, is_default=True)
 
 
-class BaseOperation(models.Model):
+class BaseOperation(ConvenienceModel):
     """Abstract base operation model."""
 
     class Meta:
@@ -566,12 +627,6 @@ class BaseOperation(models.Model):
         max_length=500, null=True, blank=True, verbose_name="Optional description")
     """Optional description of the operation."""
 
-    @staticmethod
-    def datetime_today():
-        """Returns timezone-aware present date."""
-
-        return timezone.now().date()
-
     def currency_amount(self):
         return f'{self.amount} {self.account.home.currency}'
 
@@ -583,6 +638,7 @@ class Operation(BaseOperation):
         permissions = {
             ('make_transactions', 'Can make an internal transaction to another user.')
         }
+        ordering = ('-creation_date', '-id')
 
     creation_date = models.DateField(
         auto_now_add=True, verbose_name='Time created')
@@ -599,13 +655,13 @@ class Operation(BaseOperation):
     """Optional foreign key to the OperationPlan model. Present if the operation was created as a result of a plan."""
 
     source = models.OneToOneField('self', on_delete=models.SET_NULL, null=True,
-                               verbose_name='Optional transaction source operation.', related_name='destination')
+                                  verbose_name='Optional transaction source operation.', related_name='destination')
 
     def save(self, force_insert=False, force_update=False, using=None,
              update_fields=None):
         """Overriden save method to update account money during saving."""
 
-        if self._state.adding:
+        if self.is_saved():
             account = self.account
             if self.final_date is not None:
                 account.add_to_current(self.amount, commit=False)
@@ -629,21 +685,19 @@ class Operation(BaseOperation):
     def __str__(self):
         return f'{self.amount}*' if self.final_date is None else str(self.amount)
 
-    def finalize(self, final_datetime: timezone.datetime = None):
+    def finalize(self, final_datetime: datetime | date = None):
         """Finalizes the operation setting the finalization time according to the specified parameter.
         If no argument is passed it uses the current date.
         """
 
-        if self.final_date is None:
-            if final_datetime is None:
-                self.final_date = Operation.datetime_today()
-            else:
-                self.final_date = final_datetime.date()
+        if isinstance(final_datetime, datetime):
+            final_datetime = final_datetime.date()
 
-            self.save()
-            self.account.add_to_current(self.amount)
+        self.final_date = final_datetime or today()
+            
+        self.save()
 
-    def is_transaction(self):
+    def is_transaction(self) -> bool:
         """Checks if the Operation is an internal transaction."""
 
         try:
@@ -655,10 +709,7 @@ class Operation(BaseOperation):
         """Returns the operation destination if the operation is a transaction.
         If not it does not throw an Error but returns None."""
 
-        if self.is_transaction():
-            return self.destination
-        else:
-            return None
+        return self.destination if self.is_transaction() else None
 
 
 class OperationPlan(BaseOperation):
@@ -668,6 +719,7 @@ class OperationPlan(BaseOperation):
         permissions = {
             ('plan_for_others', 'Can make plans for another user.')
         }
+        ordering = ('next_date', 'id')
 
     class TimePeriod(models.TextChoices):
         """Enum class for the time period."""
@@ -686,22 +738,14 @@ class OperationPlan(BaseOperation):
     """How many periods (days, weeks, months, years) should pass between a new operation."""
 
     next_date = models.DateField(
-        default='datetime_today', verbose_name='Next operation creation date')
+        default='today', verbose_name='Next operation creation date')
     """Next day that the new operation should be created."""
 
     def save(self, force_insert: bool = False, force_update: bool = False, using=None, update_fields=None):
         """TODO"""
 
-        if isinstance(self.next_date, timezone.datetime):
+        if isinstance(self.next_date, datetime):
             self.next_date = self.next_date.date()
-
-        op = None
-        while self.is_due():
-            op = self.create_operation(commit=False)
-
-            super().save()
-            if op is not None:
-                op.save()
 
         super().save(force_insert=force_insert, force_update=force_update,
                      using=using, update_fields=update_fields)
@@ -733,17 +777,17 @@ class OperationPlan(BaseOperation):
         next_date = base_date + delta
         return next_date
 
-    def create_operation(self, commit: bool = True):
-        """Creates a new Operation object in the database according to this plan. Returns the created Operation."""
+    def create_operation(self, commit: bool = True, recalculate: bool = True):
+        """Creates a new Operation object in the database according to this plan. Returns the created Operation.
+        If `recalculate` is True a new `next_date` is calculated from today."""
 
         op = Operation(account=self.account,
                        label=self.label,
                        amount=self.amount,
                        description=self.description)
 
-        #print(f'Operation {op} created.')
-
-        self.next_date = self.calculate_next()
+        if recalculate:
+            self.next_date = self.calculate_next()
 
         if commit:
             op.save()
@@ -756,6 +800,14 @@ class OperationPlan(BaseOperation):
         return op
 
     def is_due(self):
-        """TODO"""
+        """Chekcs if the plan is due for a new Operation."""
 
-        return self.next_date <= OperationPlan.datetime_today()
+        return self.next_date <= today()
+
+    def get_frequency(self):
+        """"""
+        
+        plural =  self.period_count != 1
+        time_label = self.TimePeriod(self.period).label.lower()
+
+        return f'Every {self.period_count} {time_label}s' if plural else f'Every {time_label}'

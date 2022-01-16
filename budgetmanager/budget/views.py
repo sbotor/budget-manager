@@ -77,7 +77,20 @@ class BaseUserView(ABC, BaseTemplateView):
 
     def setup(self, request: HttpRequest, *args, **kwargs):
         self.user = request.user
+        
         super().setup(request, *args, **kwargs)
+
+    def add_operation(self):
+        """Adds the operation from the POST data if valid. Returns True if successful."""
+
+        form = forms.AddOperationForm(self.request.POST)
+        if form.is_valid():
+            op = form.save(commit=False)
+            self.user.account.add_operation(operation=op) 
+            return True
+
+        else:
+            return False
 
 
 class UserView(BaseUserView):
@@ -90,10 +103,8 @@ class UserView(BaseUserView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        context['operations'] = Operation.objects.filter(
-            account=self.user.account).order_by('-id')[:5]
-        context['allOperations'] = Operation.objects.filter(
-            account=self.user.account).order_by('-id')
+        context['operations'] = self.user.account.get_operations()[:5]
+        context['allOperations'] = self.user.account.get_operations().order_by('-id')
         context['final_amount'] = self.user.account.final_amount
         context['current_amount'] = self.user.account.current_amount
 
@@ -111,7 +122,7 @@ class UserView(BaseUserView):
         context['make_transactions'] = self.user.has_perm(
             'budget.make_transactions')
 
-        return context
+        return context       
 
     def post(self, request: HttpRequest, *args, **kwargs):
         """Modifies the user page and renders it."""
@@ -129,10 +140,7 @@ class UserView(BaseUserView):
             Operation.objects.get(id=op_id).finalize()
 
         elif post.get('add_operation') is not None:  # Add a new operation
-            form = forms.AddOperationForm(post)
-            if form.is_valid():
-                op = form.save(commit=False)
-                self.user.account.add_operation(operation=op)
+            self.add_operation()
 
         elif post.get('transaction') is not None:
             form = forms.TransDestinationForm(post)
@@ -158,8 +166,7 @@ class OpHistoryView(BaseUserView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        context['operations'] = Operation.objects.filter(
-            account=self.user.account).order_by('-id')
+        context['operations'] = self.user.account.get_operations()
 
         return context
 
@@ -252,8 +259,7 @@ class CyclicOperationsView(BaseUserView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        context['operations'] = OperationPlan.objects.filter(
-            account=self.user.account).order_by('-id')
+        context['operations'] = self.user.account.get_plans()
 
         form = forms.PlanCyclicOperationForm()
         form.update_label_choices(self.user)
@@ -381,10 +387,8 @@ class ManageUserView(BaseHomeView):
 
         acc = request.user.account
 
-        if self._check_account(acc):
-            return super().dispatch(request, *args, **kwargs)
-        else:
-            return redirect('/')
+        return super().dispatch(request, *args, **kwargs) if self._check_account(acc) else redirect('/')
+
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -430,4 +434,3 @@ class ManageUserView(BaseHomeView):
             form.change_perms(self.managed_acc)
         else:
             messages.error(self.request, "Invalid user permissions form.")
-            #print(form.errors.as_text())

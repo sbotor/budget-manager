@@ -29,7 +29,7 @@
 
             <!--Transactions-->
             <div class="accordion border border-dark border-start-0 border-end-0 border-bottom-0">
-                {%for op in operations reversed%}
+                {% for op in operations %}
                 <div class="accordion-item">
                     <h2 class="accordion-header" id="heading{{forloop.counter}}">
                     <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{forloop.counter}}" aria-controls="collapse{{forloop.counter}}">
