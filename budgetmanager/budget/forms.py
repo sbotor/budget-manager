@@ -2,25 +2,34 @@ from django import forms
 from django.contrib.auth.models import User
 from django.forms import widgets
 from django.contrib.auth.forms import UserCreationForm
+from django.http import QueryDict
 
 from .models import *
 from .utils import today
 
 
 class BaseLabelForm(forms.ModelForm):
-    """TODO"""
+    """Base class for all forms using labels. Should not be created."""
 
-    def update_label_choices(self, user: User):
-        """TODO"""
+    def _update_label_choices(self, account: Account):
+        """Updates label choices according to the passed Account."""
 
-        self.fields['label'] = forms.ModelChoiceField(
-            queryset=user.account.available_labels(),
-            empty_label='No label',
-            required=False)
+        self.fields['label'].queryset = account.available_labels()
+        self.fields['label'].empty_label = 'No label'
+
+    @classmethod
+    def from_account(cls, account: Account):
+        """Creates a form and updates the label choices according to the account.
+        Returns the created form.
+        """
+
+        form = cls()
+        form._update_label_choices(account)
+        return form
 
 
 class AddOperationForm(BaseLabelForm):
-    """TODO"""
+    """Form for adding a new operation."""
 
     class Meta:
         model = Operation
@@ -66,7 +75,7 @@ class AddLabelForm(forms.ModelForm):
 
 
 class HomeCreationForm(UserCreationForm):
-    """TODO"""
+    """Form for adding a new Home and an Administrator account."""
 
     class Meta:
         model = User
@@ -95,17 +104,15 @@ class HomeCreationForm(UserCreationForm):
 
 
 class ChangeUserPermissionsForm(forms.Form):
-    """TODO"""
+    """Form for changing specific user permissions."""
 
     choices = forms.MultipleChoiceField(
         choices={}, widget=forms.widgets.CheckboxSelectMultiple, label='Permissions', required=False)
-    """TODO"""
 
     def change_perms(self, account: Account):
-        """TODO"""
+        """Method changing the account's user permissions according to the data."""
 
         choices = self.cleaned_data.get('choices')
-        print(choices)
         if not choices:
             account.clear_additional_perms()
             return
@@ -119,31 +126,28 @@ class ChangeUserPermissionsForm(forms.Form):
 
         for perm in perms:
             app_perm = f'budget.{perm[0]}'
-            print(
-                f'{perm}, {app_perm}, {account.has_perm(app_perm)}, {perm in choices}')
             if perm[0] in choices and not account.has_perm(app_perm):
                 account.add_perm(codename=perm[0])
             elif perm[0] not in choices and account.has_perm(app_perm):
                 account.remove_perm(codename=perm[0])
 
-    def update_choices(self, account: Account):
+    def _update_choices(self, account: Account):
         """Updates the label choices according to the specified user Account.
         Returns the sorted list of all available choices as a tuple (codename, description)."""
 
         choices = MOD_PERMS if account.is_mod() else USER_PERMS
-        
+
         choice_list = list(choices)
         choice_list.sort()
         self.fields['choices'].choices = choice_list
 
         return choices
 
-    def update_initial(self, account: Account):
+    def _update_initial(self, account: Account):
         """Updates the initially selected permissions according to the specified user Account.
-        Returns the list of granted user permission descritpions."""
+        Returns the list of all granted user permission descriptions."""
 
-        choices = self.update_choices(account)
-        # print(choices)
+        choices = self._update_choices(account)
         set_list = []
         total_list = []
         if account.is_mod():
@@ -156,8 +160,30 @@ class ChangeUserPermissionsForm(forms.Form):
                 total_list.append(choice[1])
 
         self.fields['choices'].initial = set_list
-        print(total_list)
+
+        self.all_perms = total_list
         return total_list
+
+    @classmethod
+    def from_account(cls, account: Account):
+        """Creates a new form with available choices updated according to the Account.
+        Initial choices are also selected.
+        """
+
+        form = cls()
+        form._update_initial(account)
+        return form
+
+    @classmethod
+    def from_post(cls, account: Account, post: QueryDict):
+        """Creates a new form from POST data without initial choices.
+        Available choices are updated according to the Account.
+        Returns the created form.
+        """
+
+        form = cls(post)
+        form._update_choices(account)
+        return form
 
 
 class TransactionForm(forms.ModelForm):
@@ -200,8 +226,28 @@ class TransDestinationForm(forms.ModelForm):
 
         return source.make_transaction(destination, amount, desc)
 
-    def update_destinations(self, source: Account):
-        """TODO"""
+    def _update_destinations(self, source: Account):
+        """Updates the form with the destinations avaiable to the passed Account."""
 
         self.fields['destination'].queryset = Account.objects.filter(
             home=source.home).exclude(id=source.id)
+
+    @classmethod
+    def from_account(cls, source: Account):
+        """Creates a new form with destinations updated according to the Account.
+        Returns the form.
+        """
+
+        form = cls()
+        form._update_destinations(source)
+        return form
+
+    @classmethod
+    def from_post(cls, source: Account, post: QueryDict):
+        """Creates a form from the POST data with the destinations updated according to the Account.
+        Returns the created form.
+        """
+
+        form = cls(post)
+        form._update_destinations(source)
+        return form

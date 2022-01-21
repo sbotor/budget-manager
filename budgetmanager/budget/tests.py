@@ -30,7 +30,6 @@ class PlanCommandTest(TestCase):
         plan1 = OperationPlan(account=user1.account, amount=1,
                               period='D', period_count=1, next_date=self.dates['D'])
         plan1.save()
-        # print(plan1.amount)
 
         user2 = User(username='user2', password='asdfzxcv1234')
         user2.save()

@@ -43,13 +43,24 @@
     </div>
 </div>
 
+{% if user.account.is_admin %}
 <div class="container row">
-    <h4 class="row mb-2 mt-5">Remove user
-        <div class="row">
-            <button class="btn btn-danger col-auto" data-bs-toggle="modal" data-bs-target="#removeUserModal">Remove
-                user</button>
-            {% include 'budget/home/modals/remove_user_confirmation_modal.html' %}
-        </div>
+    <h4 class="row mb-2 mt-5">Give this user
+        the Administrator role</h4>
+    <div class="row">
+        <button class="btn btn-primary col-auto" data-bs-toggle="modal" data-bs-target="#passAdminModal">Make Admin</button>
+        {% include 'budget/home/modals/pass_admin_modal.html' %}
+    </div>
+</div>
+{% endif %}
+
+<div class="container row">
+    <h4 class="row mb-2 mt-5">Remove user</h4>
+    <div class="row">
+        <button class="btn btn-danger col-auto" data-bs-toggle="modal" data-bs-target="#removeUserModal">Remove
+            user</button>
+        {% include 'budget/home/modals/remove_user_confirmation_modal.html' %}
+    </div>
 </div>
 
 

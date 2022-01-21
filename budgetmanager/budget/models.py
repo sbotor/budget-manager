@@ -162,7 +162,7 @@ class Home(ConvenienceModel):
         self.save()
 
     def add_mod(self, account: 'Account', commit: bool = True):
-        """TODO"""
+        """Adds a Home moderator."""
 
         group, created = Group.objects.get_or_create(name=MOD_GROUP)
         if created:
@@ -397,9 +397,6 @@ class Account(ConvenienceModel):
                 ops.append(op)
 
             plans.append(plan)
-
-        print(plans)
-        print(ops)
         return plans, ops
 
     def add_label(self, label: 'Label', commit: bool = True):
@@ -587,7 +584,7 @@ class Label(ConvenienceModel):
     def __str__(self):
         prefix = ''
         if self.account is None:
-            prefix = '[H]' if self.home else '[G]'
+            prefix = '[Home] ' if self.home else '[Special] '
 
         return prefix + self.name
 

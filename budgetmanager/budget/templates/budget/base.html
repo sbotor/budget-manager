@@ -26,6 +26,9 @@
 
     {% if user.is_authenticated %}
     <div class="container">
+        {% if view_as %}
+        <div class="row">Viewing as {{ view_as.get_username }}</div>
+        {% endif %}
         {% block content %}
         {% endblock %}
     </div>

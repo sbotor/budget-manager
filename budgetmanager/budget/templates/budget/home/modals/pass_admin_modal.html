@@ -1,19 +1,20 @@
 <form class="col-auto" method="POST"> {% csrf_token %}
-    <div class="modal fade" id="removeUserModal" data-bs-backdrop="static"
-        data-bs-keyboard="false" tab-index="-1" aria-labelledby="removeUserModalLabel" aria-hidden="true">
+    <div class="modal fade" id="passAdminModal" data-bs-backdrop="static"
+        data-bs-keyboard="false" tab-index="-1" aria-labelledby="passAdminModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="removeUserModalLabel">Confirmation</h5>
+                    <h5 class="modal-title" id="passAdminModalLabel">Confirmation</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    Do you really want to remove this user?<br><br>
-                    <b>This cannot be undone.</b>
+                    Do you want to give this user the Administrator role?<br><br>
+                    <b>You will lose the Administator role completely.</b><br>
+                    <i>You will be granted all the Moderator permissions.</i>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline-danger" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-danger col-auto" name="remove">Remove user</button>
+                    <button type="submit" class="btn btn-danger col-auto" name="pass_admin">Give Admin</button>
                 </div>
             </div>
         </div>

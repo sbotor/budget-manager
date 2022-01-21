@@ -9,7 +9,6 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         counter = 0
         qset = OperationPlan.objects.filter(next_date__lte=today())
-        # print(qset)
 
         for plan in qset:
             try:
