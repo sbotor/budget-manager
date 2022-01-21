@@ -187,14 +187,17 @@ class ChangeUserPermissionsForm(forms.Form):
 
 
 class TransactionForm(forms.ModelForm):
-    """TODO"""
+    """Form for making transaction between accounts when the destination is known."""
 
     class Meta:
         model = Operation
         fields = ['amount', 'description']
 
     def make_transaction(self, source: Account, destination: Account):
-        """TODO"""
+        """Makes a transaction from the `source` Account to the `destination`.
+        
+        Returns a tuple of `(outcoming, incoming)` transactions.
+        """
 
         if not source or not destination or source == destination:
             return None, None
@@ -207,7 +210,7 @@ class TransactionForm(forms.ModelForm):
 
 
 class TransDestinationForm(forms.ModelForm):
-    """TODO"""
+    """Form for making transaction between accounts with the destination unknown (chosen in the form)."""
 
     class Meta:
         model = Operation
@@ -217,7 +220,10 @@ class TransDestinationForm(forms.ModelForm):
         queryset=Account.objects.none(), label="Destination account")
 
     def make_transaction(self, source: Account):
-        """TODO"""
+        """Makes a transaction from the `source` Account to the destination as chosen in the form.
+        
+        Returns a tuple of `(outcoming, incoming)` transactions.
+        """
 
         data = self.cleaned_data
         destination = data.get('destination')

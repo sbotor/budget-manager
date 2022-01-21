@@ -139,8 +139,8 @@ class UserView(BaseUserView):
         context['final_amount'] = self.user.account.final_amount
         context['current_amount'] = self.user.account.current_amount
 
-        context['income'] = self.user.account.get_last_year_income()
-        context['expenses'] = self.user.account.get_last_year_expenses()
+        context['income'] = self.user.account.get_this_year_income()
+        context['expenses'] = self.user.account.get_this_year_expenses()
 
         add_op_form = forms.AddOperationForm.from_account(self.user.account)
         context['add_op_form'] = add_op_form

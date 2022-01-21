@@ -124,7 +124,7 @@
         options: {
             plugins: {
                 title: {
-                    text: 'Your this year\'s balance',
+                    text: 'This year\'s balance',
                     display: true,
                     font: {
                         size: 16
@@ -146,43 +146,40 @@
 
     var date = new Date();
 
-    {%for op in allOperations%}
-        {%if op.final_date != NULL%}
-        if({{op.final_date.month}} == date.getMonth()+1)
+    {% for op in allOperations %}
+        {% if op.final_date %}
+        if({{ op.final_date.month }} == date.getMonth()+1)
             {
-                if({{op.amount}} > 0)
+                if({{ op.amount }} > 0)
                 {
-                    if(pieIncomeLabels.indexOf('{{op.label_id}}') != -1)
+                    if(pieIncomeLabels.indexOf('{{ op.label }}') != -1)
                     {
-                        pieIncomeAmount[pieIncomeLabels.indexOf('{{op.label_id}}')] += {{op.amount}};
+                        pieIncomeAmount[pieIncomeLabels.indexOf('{{ op.label }}')] += {{ op.amount }};
                     }
                     else
                     {
-                        pieIncomeLabels.push('{{op.label_id}}');
-                        pieIncomeAmount.push({{op.amount}});
+                        pieIncomeLabels.push('{{ op.label }}');
+                        pieIncomeAmount.push({{ op.amount }});
                     }
                 }
                 else
                 {    
-                    if(pieExpensesLabels.indexOf('{{op.label_id}}') != -1)
+                    if(pieExpensesLabels.indexOf('{{ op.label }}') != -1)
                     {
-                        pieExpensesAmount[pieExpensesLabels.indexOf('{{op.label_id}}')] -= {{op.amount}};
+                        pieExpensesAmount[pieExpensesLabels.indexOf('{{ op.label }}')] -= {{ op.amount }};
                     }
                     else
                     {
-                        pieExpensesLabels.push('{{op.label_id}}');
-                        var amount = {{op.amount}};
+                        pieExpensesLabels.push('{{ op.label }}');
+                        var amount = {{ op.amount }};
                         amount *= -1;
                         pieExpensesAmount.push(amount);
                     }
                 }
             }
-        {%endif%}
+        {% endif %}
 
-    {%endfor%}
-
-
-    //TODO: get category names from category id
+    {% endfor %}
 
     //TODO: better colours
     colours = ['rgba(139, 0, 0)', 'rgba(218, 165, 32, 1)', 'rgba(0, 255, 0 , 1)', 'rgba(32, 178, 170, 1)', 'rgba(0, 0, 255, 1)', 'rgba(200, 150, 0, 1)'];

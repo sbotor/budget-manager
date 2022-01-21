@@ -174,7 +174,9 @@ class Home(ConvenienceModel):
             account.user.save()
 
     def remove_mod(self, account: 'Account', commit: bool = True):
-        """TODO"""
+        """Removes the Moderator role from the Account if exists. Clears additional permissions.
+        Saves the Account instance if `commit` is True.
+        """
 
         group = Group.objects.get(name=MOD_GROUP)
 
@@ -188,7 +190,7 @@ class Home(ConvenienceModel):
 
     @staticmethod
     def _setup_admin_group(group: Group):
-        """TODO"""
+        """Sets up the Home Admin group permissions."""
 
         admin_perms = [Permission.objects.get_or_create(
             codename=perm[0])[0] for perm in BASE_ADMIN_PERMS]
@@ -198,7 +200,7 @@ class Home(ConvenienceModel):
 
     @staticmethod
     def _setup_mod_group(group: Group):
-        """TODO"""
+        """Sets up the Home Moderator group permissions."""
 
         mod_perms = [Permission.objects.get_or_create(
             codename=perm[0])[0] for perm in BASE_MOD_PERMS]
@@ -237,7 +239,8 @@ class Account(ConvenienceModel):
 
     def save(self, force_insert: bool = False, force_update: bool = False, using=None, update_fields=None):
         self.user.save()
-        super().save(force_insert=force_insert, force_update=force_update, using=using, update_fields=update_fields)
+        super().save(force_insert=force_insert, force_update=force_update,
+                     using=using, update_fields=update_fields)
 
     def calculate_final(self):
         """Used to calculate the finalized amount of money in the account including finalized operations."""
@@ -274,39 +277,41 @@ class Account(ConvenienceModel):
 
         return total
 
-    def get_last_year_income(self):
-        """TODO"""
+    def get_this_year_income(self):
+        """Returns this year's income as a list."""
+
+        td = today()
+        start_date = date(year=td.year, month=1, day=1)
 
         operations = Operation.objects.filter(
-            account=self).exclude(final_date=None)
+            account=self).exclude(
+                final_date=None).filter(
+                    final_date__gte=start_date).filter(
+                        final_date__lte=td).filter(
+                            amount__gt=0)
 
-        income = [0] * 12
-
+        income = [0.0] * 12
         for op in operations:
-            difference = today().year - op.final_date.year
-            
-            if difference <= 1:
-                month = op.final_date.month
-                if op.amount > 0:
-                    income[month-1] += float(op.amount)
+            income[op.final_date.month - 1] += float(op.amount)
 
         return income
 
-    def get_last_year_expenses(self):
-        """TODO"""
+    def get_this_year_expenses(self):
+        """Returns this year's expenses as a list."""
+
+        td = today()
+        start_date = date(year=td.year, month=1, day=1)
 
         operations = Operation.objects.filter(
-            account=self).exclude(final_date=None)
+            account=self).exclude(
+                final_date=None).filter(
+                    final_date__gte=start_date).filter(
+                        final_date__lte=td).filter(
+                            amount__lt=0)
 
-        expenses = [0] * 12
-
+        expenses = [0.0] * 12
         for op in operations:
-            difference = today().year - op.final_date.year
-            
-            if difference < 1 and today().month >= op.final_date.month:
-                month = op.final_date.month
-                if op.amount < 0:
-                    expenses[month-1] += -1*float(op.amount)
+            expenses[op.final_date.month - 1] -= float(op.amount)
 
         return expenses
 
@@ -315,7 +320,7 @@ class Account(ConvenienceModel):
 
         operations = Operation.objects.filter(
             account=self).filter(final_date=None)
-        
+
         for op in operations:
             op.finalize()
 
@@ -379,11 +384,12 @@ class Account(ConvenienceModel):
 
     def _update_plans(self):
         """Checks if there are due operation plans for the account and creates operations.
-        
+
         Returns a tuple of lists: `([plans], [operations])` consisting of the updated plans and created operations.
         The lists can be empty."""
 
-        qset = OperationPlan.objects.filter(account=self).filter(next_date__lte=today())
+        qset = OperationPlan.objects.filter(
+            account=self).filter(next_date__lte=today())
         if not qset:
             return [], []
 
@@ -391,7 +397,7 @@ class Account(ConvenienceModel):
         ops = []
 
         for plan in qset:
-            
+
             while plan.is_due():
                 op = plan.create_operation()
                 ops.append(op)
@@ -438,7 +444,7 @@ class Account(ConvenienceModel):
 
         if not mod:
             return False
-        
+
         if Home:
             return Account.objects.filter(home=self.home).filter(id=self.id).exists()
         else:
@@ -447,7 +453,8 @@ class Account(ConvenienceModel):
     def make_transaction(self, destination: 'Account', amount: float, description: str = None):
         """Creates a transaction composed of two new operations with the specified description.
 
-        The amount is subtracted from the account and added to the destination account."""
+        The amount is subtracted from the account and added to the destination account.
+        Returns a tuple of `(outcoming, incoming)` transactions"""
 
         label = Label.get_global(name=('Internal'))
 
@@ -719,7 +726,7 @@ class Operation(BaseOperation):
             final_datetime = final_datetime.date()
 
         self.final_date = final_datetime or today()
-            
+
         self.save()
 
     def is_transaction(self) -> bool:
@@ -831,8 +838,8 @@ class OperationPlan(BaseOperation):
 
     def get_frequency(self):
         """"""
-        
-        plural =  self.period_count != 1
+
+        plural = self.period_count != 1
         time_label = self.TimePeriod(self.period).label.lower()
 
         return f'Every {self.period_count} {time_label}s' if plural else f'Every {time_label}'
