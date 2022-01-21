@@ -9,8 +9,9 @@
         <a href="/home" class="btn btn-outline-primary mb-3">Back to Home</a>
     </div>
 </div>
-<h3 class="row">Manage user {{ managed_acc }}</h3>
+<h3 class="row">Manage user {{ managed_acc.get_username }}</h3>
 <div class="row">
+    {% if make_mod %}
     {% if is_mod %}
     <button class="btn btn-outline-danger col-auto mt-3" data-bs-toggle="modal" data-bs-target="#unmakeModModal">Remove
         Moderator permissions</button>
@@ -19,6 +20,7 @@
     <button class="btn btn-primary col-auto mt-3" data-bs-toggle="modal" data-bs-target="#makeModModal">Grant Moderator
         permissions</button>
     {% include 'budget/home/modals/make_mod_confirmation_modal.html' %}
+    {% endif %}
     {% endif %}
 
     <form method="POST" class="row mt-3"> {% csrf_token %}

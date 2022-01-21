@@ -21,17 +21,18 @@ BASE_MOD_PERMS = {
 """Base mod permissions codenames."""
 
 MOD_PERMS = {
-    ('make_mod', 'Grant Moderator permissions'),
     ('plan_for_others', 'Plan operations for other users'),
     ('manage_users', 'Manage other users'),
-    ('make_mod', 'Grant Moderator permissions')
 }
 """Additional mod permissions codenames. Can be granted in addition to the base ones."""
 
 BASE_ADMIN_PERMS = {
+    *BASE_MOD_PERMS,
+    *MOD_PERMS,
+
     ('manage_home', 'Manage the Home'),
     ('make_home_admin', 'Pass the admin role to another user'),
-    ('manage_users', 'Manage other users'),
+    ('make_mod', 'Grant Moderator permissions')
 }
 """Base admin permissions codenames."""
 
@@ -94,21 +95,13 @@ class Home(ConvenienceModel):
 
         home = Home(name=home_name, currency=currency)
         admin = Account(user=user, home=home)
-        try:
-            home.save()
-            home.change_admin(admin)
+        home.save()
+        home.change_admin(admin)
 
-            home.create_predefined_labels()
-            home.save()
+        home.create_predefined_labels()
+        home.save()
 
-            return home
-        except IntegrityError:
-            # Clean up and return None
-            if admin._state.adding:
-                admin.delete()
-            if not home.is_saved():
-                home.delete()
-            return None
+        return home
 
     def get_labels(self, home_only: bool = False):
         """Return all the labels available to the Home excluding global labels.
@@ -260,7 +253,14 @@ class Account(ConvenienceModel):
     def get_username(self):
         """Shows the user's username or first name if exists."""
 
-        return self.user.first_name or self.user.username
+        ret_str = ""
+
+        if self.user.first_name:
+            ret_str = f'self.user.first_name ({self.user.username})'
+        else:
+            ret_str = self.user.username
+
+        return ret_str
 
     def calculate_current(self):
         """Used to calculate the current amount of money excluding unfinalized operations."""
@@ -311,11 +311,13 @@ class Account(ConvenienceModel):
         return expenses
 
     def finalize_operations(self):
+        """Finalizes all operations for the account."""
+
         operations = Operation.objects.filter(
             account=self).filter(final_date=None)
+        
         for op in operations:
             op.finalize()
-        return
 
     def add_to_current(self, amount: float, commit: bool = True):
         """Used to add the specified value to the current account. Return the new `current_amount`.
@@ -420,15 +422,30 @@ class Account(ConvenienceModel):
         user.delete()
         return ret_val
 
-    def is_admin(self):
-        """Checks if the Account's User is a home Admin."""
+    def is_admin(self, home: Home = None):
+        """Checks if the Account's User is the Home's Admin.
+        If no Home is passed the method checks if the user belongs to the Admin permission group.
+        """
+
+        if home:
+            return home.admin == self
 
         return self.user.groups.filter(name=ADMIN_GROUP).exists()
 
-    def is_mod(self):
-        """Checks if the Account's User is a home Moderator."""
+    def is_mod(self, home: Home = None):
+        """Checks if the Account's User is the Home's Moderator.
+        If no Home is passed the method checks if the user belongs to the Moderator permission group.
+        """
 
-        return self.user.groups.filter(name=MOD_GROUP).exists()
+        mod = self.user.groups.filter(name=MOD_GROUP).exists()
+
+        if not mod:
+            return False
+        
+        if Home:
+            return Account.objects.filter(home=self.home).filter(id=self.id).exists()
+        else:
+            return True
 
     def make_transaction(self, destination: 'Account', amount: float, description: str = None):
         """Creates a transaction composed of two new operations with the specified description.
@@ -442,17 +459,9 @@ class Account(ConvenienceModel):
         incoming = Operation(account=destination, amount=amount,
                              description=description, final_date=today(), label=label)
 
-        try:
-            outcoming.save()
-            incoming.source = outcoming
-            incoming.save()
-        except:
-            if outcoming.is_saved():
-                outcoming.delete()
-            if incoming.is_saved():
-                incoming.delete()
-
-            return None, None
+        outcoming.save()
+        incoming.source = outcoming
+        incoming.save()
 
         return outcoming, incoming
 
@@ -680,6 +689,18 @@ class Operation(BaseOperation):
 
     def delete(self, using=None, keep_parents=False):
         """Overriden delete method to update account money during deleting."""
+
+        if self.is_transaction():
+            if self.source:
+                src = self.source
+                self.source = None
+                self.save()
+                src.delete()
+            else:
+                dest = self.destination
+                dest.source = None
+                dest.save()
+                dest.delete()
 
         account = self.account
         if self.final_date is not None:

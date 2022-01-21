@@ -1,16 +1,16 @@
 from abc import ABC
+from django import dispatch
 from django.http.request import HttpRequest
 from django.shortcuts import render, redirect
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required, user_passes_test
 from django.utils.decorators import method_decorator
+from django.contrib.auth.decorators import login_required, permission_required
 from django.views.generic.base import TemplateView
 from django.contrib.auth.forms import UserCreationForm
 
 from .models import *
 from . import forms
-
-from django.core import serializers
+from .decorators import home_required
 
 
 def index(request: HttpRequest):
@@ -41,6 +41,7 @@ class BaseTemplateView(TemplateView):
 
 
 class AddHomeView(BaseTemplateView):
+    """TODO"""
 
     template_name = 'registration/new_home.html'
 
@@ -71,26 +72,57 @@ class AddHomeView(BaseTemplateView):
             return render(request, self.template_name, self.get_context_data())
 
 
-@method_decorator(login_required(login_url='/login'), name='dispatch')
+@method_decorator(
+    (login_required(), home_required()),
+    name='dispatch')
 class BaseUserView(ABC, BaseTemplateView):
     """Abstract class for user-specific view inheritance."""
 
     def setup(self, request: HttpRequest, *args, **kwargs):
         self.user = request.user
-        
+
         super().setup(request, *args, **kwargs)
 
-    def add_operation(self):
+    def _add_operation(self):
         """Adds the operation from the POST data if valid. Returns True if successful."""
 
         form = forms.AddOperationForm(self.request.POST)
         if form.is_valid():
             op = form.save(commit=False)
-            self.user.account.add_operation(operation=op) 
+            self.user.account.add_operation(operation=op)
             return True
 
         else:
             return False
+
+    def _rm_op(self, op_id: int):
+        """Removes an operation if it belongs to the user."""
+
+        op = Operation.objects.get(id=op_id)
+        if op.account == self.user.account:
+            op.delete()
+        # TODO: error message if wrong user
+
+    def _fin_op(self, op_id: int):
+        """Finalizes an operation if it belongs to the user."""
+
+        op = Operation.objects.get(id=op_id)
+        if op.account == self.user.account:
+            op.finalize()
+        # TODO: error
+
+    def _make_transaction(self):
+        """Makes a transaction based on the POST data."""
+
+        form = forms.TransDestinationForm(self.POST)
+        form.update_destinations(self.user.account)
+        valid = False
+        if form.is_valid():
+            outcoming, incoming = form.make_transaction(
+                source=self.user.account)
+            valid = outcoming and incoming
+        if not valid:
+            messages.error(self.request, 'Invalid transaction form.')
 
 
 class UserView(BaseUserView):
@@ -122,36 +154,28 @@ class UserView(BaseUserView):
         context['make_transactions'] = self.user.has_perm(
             'budget.make_transactions')
 
-        return context       
+        return context
 
     def post(self, request: HttpRequest, *args, **kwargs):
         """Modifies the user page and renders it."""
 
         post = request.POST
 
-        #print(post.get('rm_id'))
+        # print(post.get('rm_id'))
 
         if post.get('rm_id') is not None:  # Remove an operation
             op_id = post.get('rm_id')
-            Operation.objects.get(id=op_id).delete()
+            self._rm_op(op_id)
 
         elif post.get('fin_id') is not None:  # Finalize an operation
             op_id = post.get('fin_id')
-            Operation.objects.get(id=op_id).finalize()
+            self._fin_op(op_id)
 
         elif post.get('add_operation') is not None:  # Add a new operation
-            self.add_operation()
+            self._add_operation()
 
         elif post.get('transaction') is not None:
-            form = forms.TransDestinationForm(post)
-            form.update_destinations(self.user.account)
-            valid = False
-            if form.is_valid():
-                outcoming, incoming = form.make_transaction(
-                    source=self.user.account)
-                valid = outcoming and incoming
-            if not valid:
-                messages.error(request, 'Invalid transaction form.')
+            self._make_transaction()
 
         return self.redirect()
 
@@ -164,7 +188,7 @@ class OpHistoryView(BaseUserView):
     redirect_name = 'user_history'
 
     def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
+        context = super().get_context_data(kwargs=kwargs)
 
         context['operations'] = self.user.account.get_operations()
 
@@ -177,14 +201,17 @@ class OpHistoryView(BaseUserView):
     def post(self, request: HttpRequest, *args, **kwargs):
         if request.POST.get('rm_id') is not None:
             op_id = request.POST.get('rm_id')
-            Operation.objects.get(id=op_id).delete()
+            self._rm(op_id)
+
         elif request.POST.get('fin_id') is not None:
             op_id = request.POST.get('fin_id')
-            Operation.objects.get(id=op_id).finalize()
+            self._fin_op(op_id)
+
         elif request.POST.get('fin_all') is not None:
             self.user.account.finalize_operations()
+
         elif request.POST.get('add_operation') is not None:  # Add a new operation
-            self.add_operation()
+            self._add_operation()
 
         return self.redirect()
 
@@ -211,51 +238,101 @@ class UserLabelsView(BaseUserView):
 
         return context
 
-    # TODO
     def post(self, request: HttpRequest, *args, **kwargs):
 
         post = request.POST
 
         if post.get('add_pers_label') is not None:
-            form = forms.AddLabelForm(post)
-            if form.is_valid():
-                label = form.save(commit=False)
-                self.user.account.add_label(label=label)
+            self._add_pers_label()
 
         elif post.get('pers_rm_id') is not None:
             label_id = post.get('pers_rm_id')
-            Label.objects.get(id=label_id).delete()
+            self._rm_pers_label(label_id)
 
         elif post.get('pers_rename_id') is not None:
-            form = forms.AddLabelForm(post)
-            if form.is_valid():
-                label_id = post.get('pers_rename_id')
-                label = Label.objects.get(id=label_id)
-                label.rename(new_name=form.cleaned_data.get('name'))
+            self._rename_pers_label()
 
         elif post.get('add_home_label') is not None:
-            form = forms.AddLabelForm(post)
-            if form.is_valid():
-                label = form.save(commit=False)
-                self.user.account.home.add_label(label=label)
+            self._add_home_label()
 
         elif post.get('home_rename_id') is not None:
-            form = forms.AddLabelForm(post)
-            if form.is_valid():
-                label_id = post.get('home_rename_id')
-                label = Label.objects.get(id=label_id)
-                label.rename(new_name=form.cleaned_data.get('name'))
+            self._rename_home_label()
 
         elif post.get('home_rm_id') is not None:
             label_id = post.get('home_rm_id')
-            Label.objects.get(id=label_id).delete()
 
         elif post.get('home_default') is not None:
             keep = post.get('home_default') == 'keep'
-            self.user.account.home.create_predefined_labels(keep_custom=keep)
+            self._restore_home(keep=keep)
 
         return self.redirect()
 
+    def _add_pers_label(self):
+        """Adds a personal label to the user account."""
+        
+        form = forms.AddLabelForm(self.request.POST)
+        if form.is_valid():
+            label = form.save(commit=False)
+            self.user.account.add_label(label=label)
+        else:
+            pass # TODO
+
+    def _rm_pers_label(self, label_id: str):
+        """Removes a personal label if it belongs to the user account."""
+
+        labl = Label.objects.get(id=label_id)
+        if labl.account == self.user.account:
+            labl.delete()
+        else:
+            pass # TODO
+
+    def _rename_pers_label(self):
+        """Renames a personal label if it belongs to the user account."""
+
+        post = self.request.POST
+        form = forms.AddLabelForm(post)
+        if form.is_valid():
+            label_id = post.get('pers_rename_id')
+            label = Label.objects.get(id=label_id)
+            if label.account == self.user.account:
+                label.rename(new_name=form.cleaned_data.get('name'))
+
+    def _add_home_label(self):
+        """Adds a new home label if the user has the permissions."""
+
+        form = forms.AddLabelForm(self.request.POST)
+        if form.is_valid():
+            label = form.save(commit=False)
+            if self.user.has_perm('budget.manage_home_labels'):
+                self.user.account.home.add_label(label=label)
+            else:
+                pass # TODO
+
+    def _rename_home_label(self):
+        """Renames the home label."""
+
+        post = self.request.POST
+        form = forms.AddLabelForm(post)
+        if form.is_valid():
+            label_id = post.get('home_rename_id')
+            label = Label.objects.get(id=label_id)
+            if self.user.has_perm('budget.manage_home_labels') and label.home == self.user.account.home:
+                label.rename(new_name=form.cleaned_data.get('name'))
+
+    def _rm_home_label(self, label_id: str):
+        """Removes a new home label if the user has the permissions."""
+
+        label = Label.objects.get(id=label_id)
+        if self.user.has_perm('budget.manage_home_labels') and label.home == self.user.account.home:
+            label.delete()
+        else:
+            pass # TODO
+
+    def _restore_home(self, keep: bool):
+        """Restores the default home labels."""
+
+        if self.user.has_perm('budget.manage_home_labels'):
+            self.user.account.home.create_predefined_labels(keep_custom=keep)
 
 class CyclicOperationsView(BaseUserView):
     """TODO"""
@@ -280,24 +357,39 @@ class CyclicOperationsView(BaseUserView):
 
         if post.get('rm_id') is not None:
             op_id = post.get('rm_id')
-            OperationPlan.objects.get(id=op_id).delete()
+            self._rm_plan(op_id)
 
         elif post.get('add_cyclic_op') is not None:
-            form = forms.PlanCyclicOperationForm(post)
-            if form.is_valid():
-                plan = form.save(commit=False)
-                self.user.account.add_operation_plan(plan=plan)
+            self._add_plan()
 
         return self.redirect()
 
+    def _rm_plan(self, op_id: int):
+        """Removes the operation plan."""
 
-@method_decorator(login_required(login_url='/login'), name='dispatch')
+        op = OperationPlan.objects.get(id=op_id)
+        if op.account == self.user.account:
+            op.delete()
+        else:
+            pass # TODO
+
+    def _add_plan(self):
+        """Adds a new operation plan."""
+
+        form = forms.PlanCyclicOperationForm(self.request.POST)
+        if form.is_valid():
+            plan = form.save(commit=False)
+            self.user.account.add_operation_plan(plan=plan)
+
+
 class BaseHomeView(BaseUserView):
     """Abstract class serving as base for Home-oriented views."""
 
     def setup(self, request: HttpRequest, *args, **kwargs):
         super().setup(request, *args, **kwargs)
-        if self.user.is_authenticated:
+
+        usr = self.user
+        if usr.is_authenticated and hasattr(usr, 'account') and hasattr(usr.account, 'home'):
             self.home = self.user.account.home
 
 
@@ -329,23 +421,30 @@ class HomeView(BaseHomeView):
 
         if post.get('rm_id'):
             acc_id = post.get('rm_id')
-            Account.objects.get(id=acc_id).delete()
+            self._rm_account(acc_id)
 
         elif post.get('create') is not None:
             self._create_user()
 
         elif post.get('transaction') is not None:
-            form = forms.TransactionForm(post)
-            destination = Account.objects.get(id=post.get('transaction'))
-            valid = False
-            if form.is_valid():
-                outcoming, incoming = form.make_transaction(
-                    source=self.user.account, destination=destination)
-                valid = outcoming and incoming
-            if not valid:
-                messages.error('Invalid transaction form.')
+            self._make_transaction()
 
         return self.redirect()
+
+    def _rm_account(self, acc_id: int):
+        """Removes a user account."""
+
+        acc = Account.objects.get(id=acc_id)
+
+        if self.user.has_perm('budget.manage_users') and self.user.account.home == acc.home:
+            if self.user.account.is_admin():
+                acc.delete()
+            elif self.user.account.is_mod() and not acc.is_mod():
+                acc.delete()
+            elif not acc.is_mod():
+                acc.delete()
+        else:
+            pass # TODO
 
     def _create_user(self):
         request = self.request
@@ -366,9 +465,28 @@ class HomeView(BaseHomeView):
             messages.error(request, 'Invalid user form.')
             return None
 
+    def _make_transaction(self):
+        """Makes a transaction to the specified user."""
 
+        if not self.user.has_perm('budget.make_transactions'):
+            return # TODO
+
+        post = self.request.POST
+        form = forms.TransactionForm(post)
+        destination = Account.objects.get(id=post.get('transaction'))
+        valid = False
+        if form.is_valid():
+            outcoming, incoming = form.make_transaction(
+                source=self.user.account, destination=destination)
+            valid = outcoming and incoming
+        if not valid:
+            messages.error('Invalid transaction form.')
+
+@method_decorator(
+    (login_required(), home_required(), permission_required('budget.manage_users')),
+    name='dispatch')
 class ManageUserView(BaseHomeView):
-    """TODO"""
+    """View for managing a specific user."""
 
     template_name = 'budget/home/manage_user.html'
 
@@ -383,20 +501,25 @@ class ManageUserView(BaseHomeView):
             self.redirect_name = f'/home/{self.managed_acc.user.username}'
         except User.DoesNotExist or Account.DoesNotExist:
             self.managed_acc = None
+            self.redirect_name = '/home/'
 
-    def _check_account(self, account: Account):
-        """TODO"""
+    def _check_account(self, account: Account | None = None):
+        """Checks if the account is in the same Home as the user and if both accounts are different."""
 
-        return self.managed_acc.home == account.home and self.user.has_perm('budget.manage_users') and self.managed_acc != account
+        account = account or self.managed_acc
+
+        return self.user.account != account and self.user.account.home == account.home
+    
+    def _check_account_and_perm(self, account: Account | None = None):
+        """Same as `_check_account()` but checks if the user has the `manage_users` permission."""
+
+        return self.user.has_perm('budget.manage_users') and self._check_account(account)
 
     def dispatch(self, request: HttpRequest, *args, **kwargs):
-        if not self.managed_acc:
-            return redirect('/')
+        if self.managed_acc and self._check_account_and_perm():
+            return super().dispatch(request, *args, **kwargs)
 
-        acc = request.user.account
-
-        return super().dispatch(request, *args, **kwargs) if self._check_account(acc) else redirect('/')
-
+        return redirect('/home')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -404,41 +527,68 @@ class ManageUserView(BaseHomeView):
         context['managed_acc'] = self.managed_acc
 
         context['is_mod'] = self.managed_acc.is_mod()
+        context['make_mod'] = self.user.has_perm('budget.make_mod')
+
         form = forms.ChangeUserPermissionsForm()
         context['granted_perms'] = form.update_initial(self.managed_acc)
         context['perm_form'] = form
-
-        #print(form.fields)
 
         return context
 
     def post(self, request: HttpRequest, *args, **kwargs):
         post = request.POST
 
-        #print(post)
-
         if post.get('change') is not None:
             self._change_perms()
 
         elif post.get('make_mod') is not None:
-            self.home.add_mod(self.managed_acc)
+            self._add_mod()
 
         elif post.get('remove_mod') is not None:
-            self.home.remove_mod(self.managed_acc)
+            self._rm_mod()
 
         elif post.get('remove') is not None:
-            self.managed_acc.delete()
-            return redirect(HomeView.redirect_name)
+            return self._rm_user()
 
         return self.redirect()
 
     def _change_perms(self):
-        """TODO"""
+        """Changes the user permissions"""
 
         form = forms.ChangeUserPermissionsForm(self.request.POST)
         form.update_choices(self.managed_acc)
+
+        if not self._check_account_and_perm():
+            return # TODO
+
+        if self.managed_acc.is_mod() and not self.user.is_admin():
+            return # TODO
 
         if form.is_valid():
             form.change_perms(self.managed_acc)
         else:
             messages.error(self.request, "Invalid user permissions form.")
+
+    def _add_mod(self):
+        """Adds a new home moderator."""
+
+        if self._check_account() and self.user.has_perm('budget.make_mod') and not self.managed_acc.is_mod():
+            self.home.add_mod(self.managed_acc)
+        else:
+            pass # TODO
+
+    def _rm_mod(self):
+        """Removes a home mod."""
+
+        if self._check_account() and self.user.has_perm('budget.make_mod') and self.managed_acc.is_mod():
+            self.home.remove_mod(self.managed_acc)
+        else:
+            pass # TODO
+
+    def _rm_user(self):
+        """Removes a user."""
+
+        if self._check_account_and_perm():
+            if self.managed_acc.is_mod() and self.user.account.is_admin():
+                self.managed_acc.delete()
+        return redirect(HomeView.redirect_name)

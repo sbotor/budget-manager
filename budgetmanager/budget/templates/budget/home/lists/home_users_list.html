@@ -6,7 +6,10 @@
         <li class="list-group-item">
             <div class="row m-2">
                 <div class="col-auto">
-                    {{ account.user }} {% if account.id == user.account.id %} <b>(You)</b>{% endif %}
+                    {{ account.get_username }}
+                    {% if account.is_admin %} <i>[Administrator]</i>
+                    {% elif account.is_mod %} <i>[Moderator]</i> {% endif %}
+                    {% if account.id == user.account.id %} <b>[You]</b>{% endif %}
                 </div>
                 {% if make_transactions and account.id != user.account.id %}
                     <div class="col-auto">
@@ -56,7 +59,7 @@
     </form>
     {% endif %}
 
-    {% if manage_users and account.id != account.home.admin and account.id != user.account.id %}
+    {% if manage_users and account.id != account.home.admin.id and account.id != user.account.id %}
     <form class="col-auto" method="POST"> {% csrf_token %}
         <div class="modal fade" id="removeUser{{ forloop.counter }}" data-bs-backdrop="static"
             data-bs-keyboard="false" tab-index="-1" aria-labelledby="removeUserLabel" aria-hidden="true">
@@ -67,7 +70,7 @@
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
-                        Do you really want to remove user {{ account.user.username }}?<br><br>
+                        Do you really want to remove user {{ account.get_username }}?<br><br>
                         <b>This cannot be undone.</b>
                     </div>
                     <div class="modal-footer">
