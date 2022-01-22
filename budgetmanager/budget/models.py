@@ -692,13 +692,13 @@ class Label(ConvenienceModel):
         new_name = new_name or self.name
         
         if not self.home:
-            return not Label.get_global().exists(new_name)
+            return not Label.get_global().filter(name=new_name).exists()
 
         if not self.account: # Check if unique in Home
-            return not Label.objects.filter(home=self.home).filter(account=None).exists(name=new_name)
+            return not Label.objects.filter(home=self.home).filter(account=None).filter(name=new_name).exists()
 
         # Check if unique for the user
-        return not Label.objects.filter(account=self.account).exists(name=new_name)
+        return not Label.objects.filter(account=self.account).filter(name=new_name).exists()
 
     @staticmethod
     def get_global(name: str | None = None):

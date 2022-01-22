@@ -290,7 +290,7 @@ class UserLabelsView(BaseUserView):
                 messages.success(self.request, 'Label added.')
             else:
                 messages.error(
-                    self.request, f'Label {label.name} already exists.')
+                    self.request, f'Label "{label.name}" already exists.')
         else:
             self.update_context(add_label_form=form)
             messages.error(self.request, "Invalid label form.")
@@ -320,7 +320,7 @@ class UserLabelsView(BaseUserView):
                     messages.success(self.request, 'Label renamed.')
                 else:
                     messages.error(
-                        self.request, f'Label {new_name} already exists.')
+                        self.request, f'Label "{new_name}" already exists.')
         else:
             self.update_context(add_label_form=form)
             messages.error(self.request, 'Invalid label form.')
@@ -337,7 +337,7 @@ class UserLabelsView(BaseUserView):
                     messages.success(self.request, 'Added a new home label.')
                 else:
                     messages.error(
-                        self.request, f'Label {label.name} already exists.')
+                        self.request, f'Label "{label.name}" already exists.')
             else:
                 messages.error(self.request, 'Cannot delete home label.')
         else:
@@ -360,7 +360,7 @@ class UserLabelsView(BaseUserView):
                     messages.success(self.request, 'Label renamed.')
                 else:
                     messages.error(
-                        self.request, f'Label {new_name} already exists.')
+                        self.request, f'Label "{new_name}" already exists.')
             else:
                 messages.error(self.request, 'Cannot rename the home label.')
         else:
