@@ -4,4 +4,117 @@
 {% block title %}{{ managed_acc }}{% endblock %}
 
 {% block content %}
+
+<div class="container">
+    <div class="row">
+        <div class="col-auto">
+            <a href="/home" class="btn btn-outline-primary mb-3">Back to Home</a>
+        </div>
+    </div>
+
+    <div class="row mb-5">
+        <h2> Your permissions </h2>
+        <div class="col">
+            <!-- Here premissions-->
+            TODO: here we have to give permissions
+        </div>
+    </div>
+    <div class="col">
+        <h3> Options </h3>
+        <div class="row my-2">
+            <div class="col">
+                <button class="btn btn-outline-success" data-bs-toggle="modal"
+                    data-bs-target="#renameUser">Rename username</button>
+            </div>
+        </div>
+        {%if not user.account.is_admin%}
+            <div class="row my-2">
+                <div class="col">
+                    <button class="btn btn-danger" data-bs-toggle="modal"
+                        data-bs-target="#removeUser">Remove user</button>
+                </div>
+            </div>
+        {%else%}
+            <div class="row my-2">
+                <div class="col">
+                    <button class="btn btn-danger" data-bs-toggle="modal"
+                        data-bs-target="#removeHome">Remove home</button>
+                </div>
+            </div>
+        {%endif%}
+        </div>
+
+
+</div>
+
+<!--Modal rename form-->
+<form class="col-auto" method="POST"> {% csrf_token %}
+    <div class="modal fade" id="rename" data-bs-backdrop="static"
+        data-bs-keyboard="false" tab-index="-1" aria-labelledby="renameLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="renameLabel">Confirmation</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    {{rename_form|crispy}}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-danger" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger" name="rename"
+                        value="{{ account.id }}">Rename</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+<!--Modal remove user-->
+{%if not user.account.is_admin%}
+    <form class="col-auto" method="POST"> {% csrf_token %}
+        <div class="modal fade" id="removeUser" data-bs-backdrop="static"
+            data-bs-keyboard="false" tab-index="-1" aria-labelledby="removeUserLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="removeUserLabel">Confirmation</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        Do you really want to remove Your user account?<br><br>
+                            <b>This cannot be undone.</b>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-danger" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-danger" name="rm_id"
+                            value="{{ account.id }}">Remove user</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+{%else%}
+<form class="col-auto" method="POST"> {% csrf_token %}
+    <div class="modal fade" id="removeHome" data-bs-backdrop="static"
+        data-bs-keyboard="false" tab-index="-1" aria-labelledby="removeHomeLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="removeHomeLabel">Confirmation</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <!--TODO: delete user and home-->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-danger" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger" name="rm_id" disabled 
+                        value="{{ account.id }}">Remove user and home</button> <!-- TODO: if this is ready remove the 'disabled' tag above-->
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+{%endif%}
 {% endblock %}
