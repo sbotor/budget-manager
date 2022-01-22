@@ -320,6 +320,17 @@ class Account(ConvenienceModel):
 
         return expenses
 
+    def get_this_month_operations(self):
+        """Returns this month's operations."""
+
+        td = today()
+        start_date = date(year=td.year, month=td.month, day=1)
+        return Operation.objects.filter(
+            account=self).exclude(
+                final_date=None).filter(
+                    final_date__gte=start_date).filter(
+                        final_date__lte=td)
+
     def finalize_operations(self):
         """Finalizes all operations for the account."""
 

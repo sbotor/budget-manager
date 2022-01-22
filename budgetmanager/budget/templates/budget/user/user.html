@@ -4,7 +4,6 @@
 {% block title %}Profile{% endblock %}
 
 {% block content %}
-{% load static %}
 <div class="row mb-3">
     <h3 class="col-auto">Hello, {{ user.account.get_username }}</h3>
     <form method="POST" class="col-auto"> {% csrf_token %}
@@ -63,207 +62,17 @@
 
     <div class="container">
         <!-- Vertical bar -->
-        <canvas id="monthlyChart" height="100"></canvas>
+        <canvas id="barChart" height="100"></canvas>
         <!-- Monthly category pie-chart -->
         <div class="row">
             <div class="col">
-                <canvas id="catMonthIncome" height="100"></canvas>
+                <canvas id="pieIncome" height="100"></canvas>
             </div>
             <div class="col">
-                <canvas id="catMonthExpenses" height="100"></canvas>
+                <canvas id="pieExpenses" height="100"></canvas>
             </div>
         </div>
-
     </div>
 </div>
-
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-<!-- I have no idea how to read from external js, tried multiple solutions, nothing worked -->
-<!-- TODO: find a way to use the external js-->
-<script>
-    //Yearly Chart:
-    const first = document.getElementById('monthlyChart').getContext('2d');
-    const months = ['January', 'Febuary', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-
-    var dataIncome = {{ income }};
-    var dataExpenses = {{ expenses }};
-
-    var incomeBorderColours = [];
-
-    //Change border of income when expenses are higher than income
-    //Problem: Legent always get first element, so in january the legend could have a red border
-    for(var i=0; i<12; i++)
-    {
-        if(dataExpenses[i] > dataIncome[i])
-        {
-            incomeBorderColours.push('rgba(255, 0, 0, 1)');
-        }
-        else
-        {
-            incomeBorderColours.push('rgba(255, 0, 0, 0)');
-        }
-    }
-
-    var barData = {
-        labels: months,
-        datasets: [
-            {
-                label: 'Income',
-                data: dataIncome,
-                backgroundColor: [
-                    'rgba(0, 255, 0, 0.7)'
-                ],
-                borderColor: incomeBorderColours,
-                borderWidth: 3,
-            },
-            {
-                label: 'Expenses',
-                data: dataExpenses,
-                backgroundColor: [
-                    'rgba(0, 0, 255, 0.7)'
-                ],
-                borderColor: 'rgba(0, 0, 255, 0)',
-                borderWidth: 3
-            }
-        ]
-    };
-
-    const monthlyChart = new Chart(first, {
-        type: 'bar',
-        data: barData,
-        options: {
-            plugins: {
-                title: {
-                    text: 'This year\'s balance',
-                    display: true,
-                    font: {
-                        size: 16
-                    }
-                }
-            }
-        }
-    });
-</script>
-
-<script>        
-    const pieIncome = document.getElementById('catMonthIncome').getContext('2d');
-    const pieExpenses = document.getElementById('catMonthExpenses').getContext('2d');
-
-    var pieIncomeLabels = [];
-    var pieIncomeAmount = [];
-    var pieExpensesLabels = [];
-    var pieExpensesAmount = [];
-
-    var date = new Date();
-
-    {% for op in allOperations %}
-        {% if op.final_date %}
-        if({{ op.final_date.month }} == date.getMonth()+1)
-            {
-                if({{ op.amount }} > 0)
-                {
-                    if(pieIncomeLabels.indexOf('{{ op.label }}') != -1)
-                    {
-                        pieIncomeAmount[pieIncomeLabels.indexOf('{{ op.label }}')] += {{ op.amount }};
-                    }
-                    else
-                    {
-                        pieIncomeLabels.push('{{ op.label }}');
-                        pieIncomeAmount.push({{ op.amount }});
-                    }
-                }
-                else
-                {    
-                    if(pieExpensesLabels.indexOf('{{ op.label }}') != -1)
-                    {
-                        pieExpensesAmount[pieExpensesLabels.indexOf('{{ op.label }}')] -= {{ op.amount }};
-                    }
-                    else
-                    {
-                        pieExpensesLabels.push('{{ op.label }}');
-                        var amount = {{ op.amount }};
-                        amount *= -1;
-                        pieExpensesAmount.push(amount);
-                    }
-                }
-            }
-        {% endif %}
-
-    {% endfor %}
-
-    //TODO: better colours
-    colours = ['rgba(139, 0, 0)', 'rgba(218, 165, 32, 1)', 'rgba(0, 255, 0 , 1)', 'rgba(32, 178, 170, 1)', 'rgba(0, 0, 255, 1)', 'rgba(200, 150, 0, 1)'];
-
-    
-    if(pieIncomeLabels.length == 0)
-    {
-        pieIncomeLabels.push("No incomes this month");
-        pieIncomeAmount.push(0);
-    }
-    else if(pieIncomeLabels.indexOf("No incomes this month") != -1)
-    {
-        pieIncomeLabels.splice(pieIncomeLabels.indexOf("No incomes this month"), 1);
-        pieIncomeAmount.splice(pieIncomeLabels.indexOf("No incomes this month"), 1);
-    }
-
-    if(pieExpensesLabels.length == 0)
-    {
-        pieExpensesLabels.push("No expenses this month");
-        pieExpensesAmount.push(0);
-    }
-    else if(pieExpensesLabels.indexOf("No expenses this month") != -1)
-    {
-        pieExpensesLabels.splice(pieExpensesLabels.indexOf("No expenses this month"), 1);
-        pieExpensesAmount.splice(pieExpensesLabels.indexOf("No expenses this month"), 1);
-    }
-    
-    if(pieIncomeLabels.length == 0)
-    {
-        //Somethig big brain in the future
-    }
-    else
-    {
-        var pie1Data = {
-                labels: pieIncomeLabels,
-                datasets: [
-                    {
-                        label: 'Income by categories',
-                        data: pieIncomeAmount,
-                        backgroundColor: colours
-                    }
-                ]
-         };
-
-        const pie1 = new Chart(pieIncome, {
-            type: 'pie',
-            data: pie1Data,
-        });
-    }
-
-    if(pieExpensesLabels.length == 0)
-    {
-        //Somethig big brain in the future
-    }
-    else
-    {
-        var pie2Data = {
-            labels: pieExpensesLabels,
-            datasets: [
-            {
-                label: 'Expenses by categories',
-                data: pieExpensesAmount,
-                backgroundColor: colours
-            }
-            ]
-        };
-    
-        const pie2 = new Chart(pieExpenses, {
-            type: 'pie',
-            data: pie2Data,
-        });
-    }
-
-
-</script>
+{% include 'budget/user/charts.html' %}
 {% endblock %}
