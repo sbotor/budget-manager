@@ -16,15 +16,22 @@
         <h2> Your permissions </h2>
         <div class="col">
             <!-- Here premissions-->
-            TODO: here we have to give permissions
+            <!-- This doesn't work
+            {% for perm in permissions %}
+
+                <div class="row">{{ perm }}</div>
+
+                {% empty %}
+                <h5 class="mt-1 ms-1">None</h5>
+            {% endfor %}
+            -->
         </div>
     </div>
     <div class="col">
         <h3> Options </h3>
         <div class="row my-3">
             <div class="col">
-                <button class="btn btn-outline-success" data-bs-toggle="modal"
-                    data-bs-target="#renameUserModal">Rename username</button>
+                <button class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#renameUserModal">Rename username</button>
             </div>
         </div>
         {%if not user.account.is_admin%}
@@ -42,79 +49,79 @@
                 </div>
             </div>
         {%endif%}
-        </div>
-
-
-</div>
-
-<!--Modal rename form-->
-<form class="col-auto" method="POST"> {% csrf_token %}
-    <div class="modal fade" id="renameUserModal" data-bs-backdrop="static"
-        data-bs-keyboard="false" tab-index="-1" aria-labelledby="renameUserLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="renameUserLabel">Confirmation</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    {{rename_form|crispy}}
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-danger" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-danger" name="rename"
-                        value="{{ account.id }}">Rename</button>
-                </div>
-            </div>
-        </div>
     </div>
-</form>
-<!--Modal remove user-->
-{%if not user.account.is_admin%}
+
+    <!--Modal rename form-->
     <form class="col-auto" method="POST"> {% csrf_token %}
-        <div class="modal fade" id="removeUser" data-bs-backdrop="static"
-            data-bs-keyboard="false" tab-index="-1" aria-labelledby="removeUserLabel" aria-hidden="true">
+        <div class="modal fade" id="renameUserModal" data-bs-backdrop="static"
+            data-bs-keyboard="false" tab-index="-1" aria-labelledby="renameUserLabel" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title" id="removeUserLabel">Confirmation</h5>
+                        <h5 class="modal-title" id="renameUserLabel">Confirmation</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
-                        Do you really want to remove Your user account?<br><br>
-                            <b>This cannot be undone.</b>
+                        Test <!--See, this is written, but the form not TODO: delete this comment-->
+
+                        {{rename_form|crispy}}
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-outline-danger" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-danger" name="rm_id"
-                            value="{{ account.id }}">Remove user</button>
+                        <button type="submit" class="btn btn-secondary" name="rename"
+                            value="{{ account.id }}">Rename</button>
                     </div>
                 </div>
             </div>
         </div>
     </form>
-{%else%}
-<form class="col-auto" method="POST"> {% csrf_token %}
-    <div class="modal fade" id="removeHome" data-bs-backdrop="static"
-        data-bs-keyboard="false" tab-index="-1" aria-labelledby="removeHomeLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="removeHomeLabel">Confirmation</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    <!--Modal remove user-->
+    {%if not user.account.is_admin%}
+        <form class="col-auto" method="POST"> {% csrf_token %}
+            <div class="modal fade" id="removeUser" data-bs-backdrop="static"
+                data-bs-keyboard="false" tab-index="-1" aria-labelledby="removeUserLabel" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="removeUserLabel">Confirmation</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            Do you really want to remove Your user account?<br><br>
+                                <b>This cannot be undone.</b>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-outline-danger" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-danger" name="remove"
+                                value="{{ account.id }}">Remove user</button>
+                        </div>
+                    </div>
                 </div>
-                <div class="modal-body">
-                    <!--TODO: delete user and home-->
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-danger" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-danger" name="rm_id" disabled 
-                        value="{{ account.id }}">Remove user and home</button> <!-- TODO: if this is ready remove the 'disabled' tag above-->
+            </div>
+        </form>
+    {%else%}
+    <form class="col-auto" method="POST"> {% csrf_token %}
+        <div class="modal fade" id="removeHome" data-bs-backdrop="static"
+            data-bs-keyboard="false" tab-index="-1" aria-labelledby="removeHomeLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="removeHomeLabel">Confirmation</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <!--TODO: delete user and home-->
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-danger" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-danger" name="remove" disabled 
+                            value="{{ account.id }}">Remove user and home</button> <!-- TODO: if this is ready remove the 'disabled' tag above-->
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
-</form>
+    </form>
 
+</div>
 {%endif%}
 {% endblock %}
