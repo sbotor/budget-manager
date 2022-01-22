@@ -19,7 +19,7 @@
             <ul>
             {% for perm in permissions %}
                 <li>{{ perm }}</li>
-                
+
                 {% empty %}
                 <h5 class="mt-1 ms-1">None</h5>
             {% endfor %}
@@ -41,7 +41,8 @@
             <div class="row">
                 <div class="col">
                     <button class="btn btn-danger" data-bs-toggle="modal"
-                        data-bs-target="#removeUser">Remove user</button>
+                        data-bs-target="#removeUserModal">Remove user</button>
+                    {% include 'budget/home/modals/remove_user_confirmation_modal.html' %}
                 </div>
             </div>
         {%else%}
@@ -55,30 +56,7 @@
     </div>
 
     <!--Modal remove user-->
-    {%if not user.account.is_admin%}
-        <form class="col-auto" method="POST"> {% csrf_token %}
-            <div class="modal fade" id="removeUser" data-bs-backdrop="static"
-                data-bs-keyboard="false" tab-index="-1" aria-labelledby="removeUserLabel" aria-hidden="true">
-                <div class="modal-dialog modal-dialog-centered">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title" id="removeUserLabel">Confirmation</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                        </div>
-                        <div class="modal-body">
-                            Do you really want to remove Your user account?<br><br>
-                                <b>This cannot be undone.</b>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-outline-danger" data-bs-dismiss="modal">Cancel</button>
-                            <button type="submit" class="btn btn-danger" name="remove"
-                                value="{{ account.id }}">Remove user</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </form>
-    {%else%}
+    {%if user.account.is_admin%}
     <form class="col-auto" method="POST"> {% csrf_token %}
         <div class="modal fade" id="removeHome" data-bs-backdrop="static"
             data-bs-keyboard="false" tab-index="-1" aria-labelledby="removeHomeLabel" aria-hidden="true">
