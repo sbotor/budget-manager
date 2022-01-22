@@ -573,6 +573,8 @@ class AccountView(BaseUserView):
 
         context['permissions'] = self.user.account.get_perm_descriptions()
 
+        return context
+
     def setup(self, request: HttpRequest, *args, **kwargs):
         super().setup(request, *args, **kwargs)
 

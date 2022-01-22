@@ -31,10 +31,10 @@
         <h3> Options </h3>
         <div class="row my-3">
             <div class="col">
-                <button class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#renameUserModal">Rename username</button>
+                <button class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#renameUserModal">Change account name</button>
                 
                 <!--Modal rename form-->
-                {% include 'budget/home/modals/rename_user_confirmation_modal.html' %}
+                {% include 'budget/home/modals/rename_user_modal.html' %}
             </div>
         </div>
         {%if not user.account.is_admin%}
