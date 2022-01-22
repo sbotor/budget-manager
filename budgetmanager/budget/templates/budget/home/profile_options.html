@@ -16,15 +16,15 @@
         <h2> Your permissions </h2>
         <div class="col">
             <!-- Here premissions-->
-            <!-- This doesn't work
+            <ul>
             {% for perm in permissions %}
-
-                <div class="row">{{ perm }}</div>
-
+                <li>{{ perm }}</li>
+                
                 {% empty %}
                 <h5 class="mt-1 ms-1">None</h5>
             {% endfor %}
-            -->
+            </ul>
+            
         </div>
     </div>
     <div class="col">
