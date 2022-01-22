@@ -6,6 +6,7 @@ from django.utils.decorators import method_decorator
 from django.contrib.auth.decorators import login_required, permission_required
 from django.views.generic.base import TemplateView, View
 from django.contrib.auth.forms import UserCreationForm
+import json
 
 from .models import *
 from . import forms
@@ -206,12 +207,8 @@ class UserView(BaseUserView):
         context = super().get_context_data(**kwargs)
 
         context['operations'] = self.user.account.get_operations()[:5]
-        context['allOperations'] = self.user.account.get_operations().order_by('-id')
         context['final_amount'] = self.user.account.final_amount
         context['current_amount'] = self.user.account.current_amount
-
-        context['income'] = self.user.account.get_this_year_income()
-        context['expenses'] = self.user.account.get_this_year_expenses()
 
         add_op_form = context.get('add_op_form') or forms.AddOperationForm.from_account(self.user.account)
         context['add_op_form'] = add_op_form
@@ -222,7 +219,36 @@ class UserView(BaseUserView):
         context['make_transactions'] = self.user.has_perm(
             'budget.make_transactions')
 
+        self._update_chart_data(context)
+
         return context
+
+    def _update_chart_data(self, context: dict):
+        """Updates the chart data for the user."""
+
+        context['allOperations'] = self.user.account.get_operations().order_by('-id')
+
+        income_string = [str(el) for el in self.user.account.get_this_year_income()]
+        context['income'] = ','.join(income_string)
+
+        expenses_string = [str(el) for el in self.user.account.get_this_year_expenses()]
+        context['expenses'] = ','.join(expenses_string)
+
+        context['operation_data'] = self._get_operations_json()
+
+    def _get_operations_json(self):
+        """Creates a JSON of this month\'s operations."""
+
+        operations = self.user.account.get_this_month_operations()
+        op_list = []
+
+        for op in operations:
+            op_list.append(json.dumps({
+                'amount': str(op.amount),
+                'label': [str(op.label.id), str(op.label)] if op.label else ['0', 'No label'],
+            }))
+
+        return json.dumps(op_list)
 
     def post(self, request: HttpRequest, *args, **kwargs):
         """Modifies the user page and renders it."""
