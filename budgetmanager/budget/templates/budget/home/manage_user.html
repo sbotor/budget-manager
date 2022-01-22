@@ -63,6 +63,14 @@
     {% endif %}
 
     <div class="row">
+        <h4 class="mb-2 mt-5">Rename user</h4>
+        <div class="col">
+            <button class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#renameUserModal">Rename user</button>
+            {% include 'budget/home/modals/rename_user_confirmation_modal.html' %}
+        </div>
+    </div>
+
+    <div class="row">
         <h4 class="mb-2 mt-5">Remove user</h4>
         <div class="col">
             <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#removeUserModal">Remove

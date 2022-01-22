@@ -24,7 +24,7 @@
         <div class="row my-3">
             <div class="col">
                 <button class="btn btn-outline-success" data-bs-toggle="modal"
-                    data-bs-target="#renameUser">Rename username</button>
+                    data-bs-target="#renameUserModal">Rename username</button>
             </div>
         </div>
         {%if not user.account.is_admin%}
@@ -49,12 +49,12 @@
 
 <!--Modal rename form-->
 <form class="col-auto" method="POST"> {% csrf_token %}
-    <div class="modal fade" id="rename" data-bs-backdrop="static"
-        data-bs-keyboard="false" tab-index="-1" aria-labelledby="renameLabel" aria-hidden="true">
+    <div class="modal fade" id="renameUserModal" data-bs-backdrop="static"
+        data-bs-keyboard="false" tab-index="-1" aria-labelledby="renameUserLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="renameLabel">Confirmation</h5>
+                    <h5 class="modal-title" id="renameUserLabel">Confirmation</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
