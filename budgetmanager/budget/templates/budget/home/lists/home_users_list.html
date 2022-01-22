@@ -5,7 +5,7 @@
         {% for account in accounts %}
         <li class="list-group-item">
             <div class="row m-2">
-                <div class="col-auto">
+                <div class="col-4">
                     {{ account.get_username }}
                     {% if account.is_admin %} <i>[Administrator]</i>
                     {% elif account.is_mod %} <i>[Moderator]</i> {% endif %}
