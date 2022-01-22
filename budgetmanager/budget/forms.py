@@ -276,3 +276,24 @@ class TransDestinationForm(BaseTransactionForm):
         form = cls(post)
         form._update_destinations(source)
         return form
+
+
+class RenameAccountForm(forms.ModelForm):
+    """Form for changing the user actual name (not username)."""
+
+    class Meta:
+        model = User
+        fields = ['first_name']
+
+    @classmethod
+    def from_account(cls, account: Account):
+        """Creates a form with the default name set to the account's name.
+        Returns the created form.
+        """
+
+        name = account.user.first_name or account.user.username
+
+        form = cls()
+        form.fields['first_name'].label = 'Name'
+        form.fields['first_name'].initial = name
+        return form

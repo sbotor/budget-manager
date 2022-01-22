@@ -243,6 +243,7 @@ class Account(ConvenienceModel):
 
     def save(self, force_insert: bool = False, force_update: bool = False, using=None, update_fields=None):
         self.user.save()
+
         super().save(force_insert=force_insert, force_update=force_update,
                      using=using, update_fields=update_fields)
 
@@ -386,6 +387,28 @@ class Account(ConvenienceModel):
 
         return plan
 
+    def recalculate_amounts(self, commit: bool = True):
+        """Recalculates both amounts of money.
+        
+        If `commit` is False the Account is not saved to the database.
+        """
+
+        operations = Operation.objects.filter(account=self)
+        final = 0.0
+        current = 0.0
+
+        for op in operations:
+            amount = float(op.amount)
+            if op.final_date:
+                current += amount
+            final += amount
+
+        self.final_amount = final
+        self.current_amount = current
+
+        if commit:
+            self.save()
+    
     def _update_plans(self):
         """Checks if there are due operation plans for the account and creates operations.
 
@@ -407,6 +430,7 @@ class Account(ConvenienceModel):
                 ops.append(op)
 
             plans.append(plan)
+
         return plans, ops
 
     def add_label(self, label: 'Label', commit: bool = True):
@@ -547,6 +571,50 @@ class Account(ConvenienceModel):
         self._update_plans()
         return OperationPlan.objects.filter(account=self)
 
+    def rename(self, new_name: str):
+        """Changes the Account's User name (not username)."""
+
+        if new_name == self.user.username:
+            new_name = None
+
+        self.user.username = new_name
+        self.user.save()
+
+    def _fetch_perms(self, descriptions: bool = False):
+        """Returns granted user permissions without the default ones.
+        If `descriptions` is true it fetches all descriptions instead of codenames.
+        """
+
+        i = 1 if descriptions else 0
+
+        if self.is_admin():
+            return [perm[i] for perm in BASE_ADMIN_PERMS]
+
+        elif self.is_mod():
+            perms = [perm[i] for perm in BASE_MOD_PERMS]
+            for perm in MOD_PERMS:
+                if self.has_perm(f'budget.{perm[0]}'):
+                    perms.append(perm[i])
+            
+            return perms
+
+        else:
+            perms = []
+            for perm in USER_PERMS:
+                if self.has_perm(f'budget.{perm[0]}'):
+                    perms.append(perm[i])
+
+            return perms
+    
+    def get_perms(self):
+        """Returns all the granted permissions for this user excluding the default ones."""
+
+        return self._fetch_perms(False)        
+
+    def get_perm_descriptions(self):
+        """Returns a list of the granted user permission descriptions (excluding default ones)."""
+
+        return self._fetch_perms(True)
 
 class Label(ConvenienceModel):
     """Label model. Home labels do not have a value in the account field and personal labels do. Global labels have neither."""
@@ -708,7 +776,7 @@ class Operation(BaseOperation):
              update_fields=None):
         """Overriden save method to update account money during saving."""
 
-        if self.is_saved():
+        if not self.is_saved():
             account = self.account
             if self.final_date is not None:
                 account.add_to_current(self.amount, commit=False)
@@ -739,7 +807,7 @@ class Operation(BaseOperation):
 
         account.add_to_final(-self.amount)
 
-        super().delete(using=using, keep_parents=keep_parents)
+        return super().delete(using=using, keep_parents=keep_parents)
 
     def __str__(self):
         return f'{self.amount}*' if self.final_date is None else str(self.amount)
@@ -749,11 +817,15 @@ class Operation(BaseOperation):
         If no argument is passed it uses the current date.
         """
 
+        if self.final_date:
+            return
+
         if isinstance(final_datetime, datetime):
             final_datetime = final_datetime.date()
 
         self.final_date = final_datetime or today()
 
+        self.account.add_to_current(self.amount)
         self.save()
 
     def is_transaction(self) -> bool:

@@ -185,6 +185,9 @@ class UserView(BaseUserView):
         elif post.get('transaction') is not None:
             self._make_transaction()
 
+        elif post.get('refresh') is not None:
+            self.user.account.recalculate_amounts()
+
         return self.redirect()
 
 
@@ -562,8 +565,16 @@ class AccountView(BaseUserView):
 
     template_name = 'budget/home/profile_options.html'
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        rename_form = context.get('rename_form') or forms.RenameAccountForm.from_account(self.user.account)
+        context['rename_form'] = rename_form
+
+        context['permissions'] = self.user.account.get_perm_descriptions()
+
     def setup(self, request: HttpRequest, *args, **kwargs):
-        super().setup(request, args, kwargs)
+        super().setup(request, *args, **kwargs)
 
         username = kwargs.get('username')
         if self.user.username == username:
@@ -573,13 +584,42 @@ class AccountView(BaseUserView):
 
     def dispatch(self, request: HttpRequest, *args, **kwargs):
         if self.redirect_name:
-            return super().dispatch(request, args, kwargs)
+            return super().dispatch(request, *args, **kwargs)
 
         return redirect('/home')
 
     def post(self, request: HttpRequest, *args, **kwargs):
-        pass
+        
+        post = request.POST
 
+        if post.get('rename') is not None:
+            self._rename()
+
+        if post.get('remove') is not None:
+            return self._remove()
+
+        return self.redirect()
+
+    def _rename(self):
+        """Renames the user account."""
+        
+        form = forms.RenameAccountForm.from_post(self.request.POST)
+        if form.is_valid():
+            self.user.account.rename(form.cleaned_data.get('first_name'))
+            messages.success(self.request, 'Account renamed.')
+        else:
+            self.update_context(rename_form=form)
+            messages.error(self.request, 'Invalid rename form.')
+
+    def _remove(self):
+        """Removes the user account."""
+
+        if self.user.account.is_admin():
+            pass # TODO: remove Home or something
+
+        self.user.account.delete()
+        messages.success(self.request, 'Account deleted.')
+        return redirect('/')
 
 @method_decorator(
     (login_required(), home_required(), permission_required('budget.manage_users')),
@@ -619,7 +659,7 @@ class ManageUserView(BaseHomeView):
             return super().dispatch(request, *args, **kwargs)
 
         if self.user.account == self.managed_acc:
-            return AccountView.as_view()(request, args, kwargs)
+            return AccountView.as_view()(request, *args, **kwargs)
 
         return redirect('/home')
 
@@ -634,6 +674,9 @@ class ManageUserView(BaseHomeView):
         form = context.get('perm_form') or forms.ChangeUserPermissionsForm.from_account(self.managed_acc)
         context['granted_perms'] = form.all_perms
         context['perm_form'] = form
+
+        rename_form = context.get('rename_form') or forms.RenameAccountForm.from_account(self.user.account)
+        context['rename_form'] = rename_form
 
         return context
 
@@ -654,6 +697,9 @@ class ManageUserView(BaseHomeView):
 
         elif post.get('pass_admin') is not None:
             return self._pass_admin()
+
+        elif post.get('rename') is not None:
+            self._rename()
 
         return self.redirect()
 
@@ -730,3 +776,17 @@ class ManageUserView(BaseHomeView):
 
         messages.error(self.request, 'Cannot remove the user.')
         return redirect(HomeView.redirect_name)
+
+    def _rename(self):
+        """Renames the user account."""
+        
+        if not self._check_account_and_perm():
+            messages.error(self.request, 'Cannot rename the user.')
+
+        form = forms.RenameAccountForm.from_post(self.request.POST)
+        if form.is_valid():
+            self.managed_acc.rename(form.cleaned_data.get('first_name'))
+            messages.success('Account renamed.')
+        else:
+            self.update_context(rename_form=form)
+            messages.error('Invalid rename form.')
