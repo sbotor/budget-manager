@@ -638,6 +638,8 @@ class AccountView(BaseUserView):
 
         context['permissions'] = self.user.account.get_perm_descriptions()
 
+        return context
+
     def setup(self, request: HttpRequest, *args, **kwargs):
         super().setup(request, *args, **kwargs)
 
@@ -668,7 +670,7 @@ class AccountView(BaseUserView):
     def _rename(self):
         """Renames the user account."""
         
-        form = forms.RenameAccountForm.from_post(self.request.POST)
+        form = forms.RenameAccountForm(self.request.POST)
         if form.is_valid():
             self.user.account.rename(form.cleaned_data.get('first_name'))
             messages.success(self.request, 'Account renamed.')
@@ -737,7 +739,7 @@ class ManageUserView(BaseHomeView):
         context['granted_perms'] = form.all_perms
         context['perm_form'] = form
 
-        rename_form = context.get('rename_form') or forms.RenameAccountForm.from_account(self.user.account)
+        rename_form = context.get('rename_form') or forms.RenameAccountForm.from_account(self.managed_acc)
         context['rename_form'] = rename_form
 
         return context
@@ -845,10 +847,10 @@ class ManageUserView(BaseHomeView):
         if not self._check_account_and_perm():
             messages.error(self.request, 'Cannot rename the user.')
 
-        form = forms.RenameAccountForm.from_post(self.request.POST)
+        form = forms.RenameAccountForm(self.request.POST)
         if form.is_valid():
             self.managed_acc.rename(form.cleaned_data.get('first_name'))
-            messages.success('Account renamed.')
+            messages.success(self.request, 'Account renamed.')
         else:
             self.update_context(rename_form=form)
-            messages.error('Invalid rename form.')
+            messages.error(self.request, 'Invalid rename form.')

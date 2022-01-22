@@ -264,7 +264,7 @@ class Account(ConvenienceModel):
         ret_str = ""
 
         if self.user.first_name:
-            ret_str = f'self.user.first_name ({self.user.username})'
+            ret_str = f'{self.user.first_name} ({self.user.username})'
         else:
             ret_str = self.user.username
 
@@ -574,10 +574,9 @@ class Account(ConvenienceModel):
     def rename(self, new_name: str):
         """Changes the Account's User name (not username)."""
 
-        if new_name == self.user.username:
-            new_name = None
+        new_name = new_name or ''
 
-        self.user.username = new_name
+        self.user.first_name = new_name
         self.user.save()
 
     def _fetch_perms(self, descriptions: bool = False):

@@ -4,4 +4,103 @@
 {% block title %}{{ managed_acc }}{% endblock %}
 
 {% block content %}
+
+<div class="container">
+    <div class="row">
+        <div class="col-auto">
+            <a href="/home" class="btn btn-outline-primary mb-3">Back to Home</a>
+        </div>
+    </div>
+
+    <div class="row mb-5">
+        <h2> Your permissions </h2>
+        <div class="col">
+            <!-- Here premissions-->
+            <!-- This doesn't work
+            {% for perm in permissions %}
+
+                <div class="row">{{ perm }}</div>
+
+                {% empty %}
+                <h5 class="mt-1 ms-1">None</h5>
+            {% endfor %}
+            -->
+        </div>
+    </div>
+    <div class="col">
+        <h3> Options </h3>
+        <div class="row my-3">
+            <div class="col">
+                <button class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#renameUserModal">Change account name</button>
+                
+                <!--Modal rename form-->
+                {% include 'budget/home/modals/rename_user_modal.html' %}
+            </div>
+        </div>
+        {%if not user.account.is_admin%}
+            <div class="row">
+                <div class="col">
+                    <button class="btn btn-danger" data-bs-toggle="modal"
+                        data-bs-target="#removeUser">Remove user</button>
+                </div>
+            </div>
+        {%else%}
+            <div class="row">
+                <div class="col">
+                    <button class="btn btn-danger" data-bs-toggle="modal"
+                        data-bs-target="#removeHome">Remove home</button>
+                </div>
+            </div>
+        {%endif%}
+    </div>
+
+    <!--Modal remove user-->
+    {%if not user.account.is_admin%}
+        <form class="col-auto" method="POST"> {% csrf_token %}
+            <div class="modal fade" id="removeUser" data-bs-backdrop="static"
+                data-bs-keyboard="false" tab-index="-1" aria-labelledby="removeUserLabel" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="removeUserLabel">Confirmation</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            Do you really want to remove Your user account?<br><br>
+                                <b>This cannot be undone.</b>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-outline-danger" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-danger" name="remove"
+                                value="{{ account.id }}">Remove user</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </form>
+    {%else%}
+    <form class="col-auto" method="POST"> {% csrf_token %}
+        <div class="modal fade" id="removeHome" data-bs-backdrop="static"
+            data-bs-keyboard="false" tab-index="-1" aria-labelledby="removeHomeLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="removeHomeLabel">Confirmation</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <!--TODO: delete user and home-->
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-danger" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-danger" name="remove" disabled 
+                            value="{{ account.id }}">Remove user and home</button> <!-- TODO: if this is ready remove the 'disabled' tag above-->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+
+</div>
+{%endif%}
 {% endblock %}
