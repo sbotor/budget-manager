@@ -93,11 +93,14 @@
 
     //Change border of income when expenses are higher than income
     //Problem: Legent always get first element, so in january the legend could have a red border
-    for (var i = 0; i < 12; i++) {
-        if (dataExpenses[i] > dataIncome[i]) {
+    for(var i=0; i<12; i++)
+    {
+        if(dataExpenses[i] > dataIncome[i])
+        {
             incomeBorderColours.push('rgba(255, 0, 0, 1)');
         }
-        else {
+        else
+        {
             incomeBorderColours.push('rgba(255, 0, 0, 0)');
         }
     }
@@ -143,7 +146,7 @@
     });
 </script>
 
-<script>
+<script>        
     const pieIncome = document.getElementById('catMonthIncome').getContext('2d');
     const pieExpenses = document.getElementById('catMonthExpenses').getContext('2d');
 
@@ -155,78 +158,82 @@
     var date = new Date();
 
     {% for op in allOperations %}
-    {% if op.final_date %}
-    if ({{ op.final_date.month }} == date.getMonth() + 1)
-    {
-        if ({{ op.amount }
-    } > 0)
-    {
-        if (pieIncomeLabels.indexOf('{{ op.label }}') != -1) {
-            pieIncomeAmount[pieIncomeLabels.indexOf('{{ op.label }}')] += {{ op.amount }
-        };
-    }
+        {% if op.final_date %}
+        if({{ op.final_date.month }} == date.getMonth()+1)
+            {
+                if({{ op.amount }} > 0)
+                {
+                    if(pieIncomeLabels.indexOf('{{ op.label }}') != -1)
+                    {
+                        pieIncomeAmount[pieIncomeLabels.indexOf('{{ op.label }}')] += {{ op.amount }};
+                    }
                     else
-    {
-        pieIncomeLabels.push('{{ op.label }}');
-        pieIncomeAmount.push({{ op.amount }});
+                    {
+                        pieIncomeLabels.push('{{ op.label }}');
+                        pieIncomeAmount.push({{ op.amount }});
                     }
                 }
                 else
-    {
-        if (pieExpensesLabels.indexOf('{{ op.label }}') != -1) {
-            pieExpensesAmount[pieExpensesLabels.indexOf('{{ op.label }}')] -= {{ op.amount }
-        };
-    }
+                {    
+                    if(pieExpensesLabels.indexOf('{{ op.label }}') != -1)
+                    {
+                        pieExpensesAmount[pieExpensesLabels.indexOf('{{ op.label }}')] -= {{ op.amount }};
+                    }
                     else
-    {
-        pieExpensesLabels.push('{{ op.label }}');
-        var amount = {{ op.amount }
-    };
-    amount *= -1;
-    pieExpensesAmount.push(amount);
+                    {
+                        pieExpensesLabels.push('{{ op.label }}');
+                        var amount = {{ op.amount }};
+                        amount *= -1;
+                        pieExpensesAmount.push(amount);
                     }
                 }
             }
-    {% endif %}
+        {% endif %}
 
     {% endfor %}
 
     //TODO: better colours
     colours = ['rgba(139, 0, 0)', 'rgba(218, 165, 32, 1)', 'rgba(0, 255, 0 , 1)', 'rgba(32, 178, 170, 1)', 'rgba(0, 0, 255, 1)', 'rgba(200, 150, 0, 1)'];
 
-
-    if (pieIncomeLabels.length == 0) {
+    
+    if(pieIncomeLabels.length == 0)
+    {
         pieIncomeLabels.push("No incomes this month");
         pieIncomeAmount.push(0);
     }
-    else if (pieIncomeLabels.indexOf("No incomes this month") != -1) {
+    else if(pieIncomeLabels.indexOf("No incomes this month") != -1)
+    {
         pieIncomeLabels.splice(pieIncomeLabels.indexOf("No incomes this month"), 1);
         pieIncomeAmount.splice(pieIncomeLabels.indexOf("No incomes this month"), 1);
     }
 
-    if (pieExpensesLabels.length == 0) {
+    if(pieExpensesLabels.length == 0)
+    {
         pieExpensesLabels.push("No expenses this month");
         pieExpensesAmount.push(0);
     }
-    else if (pieExpensesLabels.indexOf("No expenses this month") != -1) {
+    else if(pieExpensesLabels.indexOf("No expenses this month") != -1)
+    {
         pieExpensesLabels.splice(pieExpensesLabels.indexOf("No expenses this month"), 1);
         pieExpensesAmount.splice(pieExpensesLabels.indexOf("No expenses this month"), 1);
     }
-
-    if (pieIncomeLabels.length == 0) {
+    
+    if(pieIncomeLabels.length == 0)
+    {
         //Somethig big brain in the future
     }
-    else {
+    else
+    {
         var pie1Data = {
-            labels: pieIncomeLabels,
-            datasets: [
-                {
-                    label: 'Income by categories',
-                    data: pieIncomeAmount,
-                    backgroundColor: colours
-                }
-            ]
-        };
+                labels: pieIncomeLabels,
+                datasets: [
+                    {
+                        label: 'Income by categories',
+                        data: pieIncomeAmount,
+                        backgroundColor: colours
+                    }
+                ]
+         };
 
         const pie1 = new Chart(pieIncome, {
             type: 'pie',
@@ -234,21 +241,23 @@
         });
     }
 
-    if (pieExpensesLabels.length == 0) {
+    if(pieExpensesLabels.length == 0)
+    {
         //Somethig big brain in the future
     }
-    else {
+    else
+    {
         var pie2Data = {
             labels: pieExpensesLabels,
             datasets: [
-                {
-                    label: 'Expenses by categories',
-                    data: pieExpensesAmount,
-                    backgroundColor: colours
-                }
+            {
+                label: 'Expenses by categories',
+                data: pieExpensesAmount,
+                backgroundColor: colours
+            }
             ]
         };
-
+    
         const pie2 = new Chart(pieExpenses, {
             type: 'pie',
             data: pie2Data,

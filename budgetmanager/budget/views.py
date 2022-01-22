@@ -1,5 +1,4 @@
 from abc import ABC
-from email.errors import MessageError
 from django.http.request import HttpRequest
 from django.shortcuts import render, redirect
 from django.contrib import messages
