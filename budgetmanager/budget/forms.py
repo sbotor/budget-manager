@@ -1,8 +1,10 @@
+from xml.dom import ValidationErr
 from django import forms
 from django.contrib.auth.models import User
-from django.forms import widgets
+from django.forms import ValidationError, widgets
 from django.contrib.auth.forms import UserCreationForm
 from django.http import QueryDict
+from django.core.validators import MinValueValidator
 
 from .models import *
 from .utils import today
@@ -186,7 +188,24 @@ class ChangeUserPermissionsForm(forms.Form):
         return form
 
 
-class TransactionForm(forms.ModelForm):
+class BaseTransactionForm(forms.ModelForm):
+    """Base transaction form with custom validation."""
+
+    class Meta:
+        model = Operation
+        fields = ['amount', 'description']
+
+    def clean(self):
+
+        cleaned_data = super().clean()
+        amount = cleaned_data.get('amount')
+
+        if amount and amount <= 0:
+            raise ValidationError("The amount cannot be negative.")
+
+        return super().clean()
+
+class TransactionForm(BaseTransactionForm):
     """Form for making transaction between accounts when the destination is known."""
 
     class Meta:
@@ -203,13 +222,13 @@ class TransactionForm(forms.ModelForm):
             return None, None
 
         data = self.cleaned_data
-        amount = abs(data.get('amount'))
+        amount = data.get('amount')
         desc = data.get('description')
 
         return source.make_transaction(destination, amount, desc)
 
 
-class TransDestinationForm(forms.ModelForm):
+class TransDestinationForm(BaseTransactionForm):
     """Form for making transaction between accounts with the destination unknown (chosen in the form)."""
 
     class Meta:
@@ -217,7 +236,7 @@ class TransDestinationForm(forms.ModelForm):
         fields = ['amount', 'description', 'destination']
 
     destination = forms.ModelChoiceField(
-        queryset=Account.objects.none(), label="Destination account")
+        queryset=Account.objects.none(), label="Destination account", required=True)
 
     def make_transaction(self, source: Account):
         """Makes a transaction from the `source` Account to the destination as chosen in the form.
@@ -227,7 +246,7 @@ class TransDestinationForm(forms.ModelForm):
 
         data = self.cleaned_data
         destination = data.get('destination')
-        amount = abs(data.get('amount'))
+        amount = data.get('amount')
         desc = data.get('description')
 
         return source.make_transaction(destination, amount, desc)

@@ -1,0 +1,9 @@
+{% if messages %}
+<div class="container col-4 mt-2 mb-5">
+    <ul clas="mt-3 list-group col-auto">
+        {% for message in messages %}
+        <h5 class="list-group-item {{ message.tags }}">{{ message }}</h5>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}

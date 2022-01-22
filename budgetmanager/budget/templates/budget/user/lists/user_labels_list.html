@@ -41,12 +41,12 @@
                 <div class="modal-dialog">
                     <div class="modal-content">
                         <div class="modal-header">
-                            <h5 class="modal-title" id="renamePersLabelModalLabel{{ forloop.counter }}">Rename label "{{
-                                label.name }}"</h5>
+                            <h5 class="modal-title" id="renamePersLabelModalLabel{{ forloop.counter }}">Rename label
+                                "{{ label.name }}"</h5>
                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>
                         <div class="modal-body">
-                            {{ add_pers_label_form|crispy }}
+                            {{ add_label_form|crispy }}
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-danger" data-bs-dismiss="modal">Cancel</button>

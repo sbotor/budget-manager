@@ -17,11 +17,7 @@
     {% include 'budget/navbar.html' %}
 
     {% block messages %}
-    <div class="container mt-2 mb-5">
-        {% for message in messages %}
-        <h4 class="row">{{ message }}</h4>
-        {% endfor %}
-    </div>
+    {% include 'budget/messages.html' %}
     {% endblock %}
 
     {% if user.is_authenticated %}

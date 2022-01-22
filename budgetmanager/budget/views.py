@@ -40,8 +40,9 @@ class BaseTemplateView(TemplateView):
             self.extra_context.update(kwargs)
 
 
+
 class AddHomeView(BaseTemplateView):
-    """TODO"""
+    """View for adding a new Home and Administrator."""
 
     template_name = 'registration/new_home.html'
 
@@ -50,8 +51,8 @@ class AddHomeView(BaseTemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        if context.get('form') is None:
-            context['form'] = forms.HomeCreationForm()
+        form = context.get('form')
+        context['form'] = form or forms.HomeCreationForm()
 
         return context
 
@@ -90,9 +91,12 @@ class BaseUserView(ABC, BaseTemplateView):
         if form.is_valid():
             op = form.save(commit=False)
             self.user.account.add_operation(operation=op)
+            messages.success(self.request, 'Operation added.')
             return True
 
         else:
+            self.update_context(add_op_form=form)
+            messages.error(self.request, 'Invalid operation form.')
             return False
 
     def _rm_op(self, op_id: int):
@@ -101,7 +105,9 @@ class BaseUserView(ABC, BaseTemplateView):
         op = Operation.objects.get(id=op_id)
         if op.account == self.user.account:
             op.delete()
-        # TODO: error message if wrong user
+            messages.success(self.request, 'Operation removed.')
+        else:
+            messages.error(self.request, 'Cannot remove someone else\'s operation.')
 
     def _fin_op(self, op_id: int):
         """Finalizes an operation if it belongs to the user."""
@@ -109,18 +115,25 @@ class BaseUserView(ABC, BaseTemplateView):
         op = Operation.objects.get(id=op_id)
         if op.account == self.user.account:
             op.finalize()
-        # TODO: error
+            messages.success(self.request, 'Operation finalized.')
+        else:
+            messages.error(self.request, 'Cannot finalize someone else\'s operation.')
 
     def _make_transaction(self):
         """Makes a transaction based on the POST data."""
 
-        form = forms.TransDestinationForm.from_post(self.user.account, self.request.POST)
+        form = forms.TransDestinationForm.from_post(
+            self.user.account, self.request.POST)
         valid = False
         if form.is_valid():
             outcoming, incoming = form.make_transaction(
                 source=self.user.account)
             valid = outcoming and incoming
-        if not valid:
+        
+        if valid:
+            messages.success(self.request, 'Transaction made.')
+        else:
+            self.update_context(transaction_form=form)
             messages.error(self.request, 'Invalid transaction form.')
 
 
@@ -142,10 +155,10 @@ class UserView(BaseUserView):
         context['income'] = self.user.account.get_this_year_income()
         context['expenses'] = self.user.account.get_this_year_expenses()
 
-        add_op_form = forms.AddOperationForm.from_account(self.user.account)
+        add_op_form = context.get('add_op_form') or forms.AddOperationForm.from_account(self.user.account)
         context['add_op_form'] = add_op_form
 
-        trans_form = forms.TransDestinationForm.from_account(self.user.account)
+        trans_form = context.get('transaction_form') or forms.TransDestinationForm.from_account(self.user.account)
         context['transaction_form'] = trans_form
 
         context['make_transactions'] = self.user.has_perm(
@@ -187,7 +200,7 @@ class OpHistoryView(BaseUserView):
 
         context['operations'] = self.user.account.get_operations()
 
-        add_op_form = forms.AddOperationForm.from_account(self.user.account)
+        add_op_form = context.get('add_op_form') or forms.AddOperationForm.from_account(self.user.account)
         context['add_op_form'] = add_op_form
 
         return context
@@ -204,7 +217,7 @@ class OpHistoryView(BaseUserView):
         elif request.POST.get('fin_all') is not None:
             self.user.account.finalize_operations()
 
-        elif request.POST.get('add_operation') is not None:  # Add a new operation
+        elif request.POST.get('add_operation') is not None:
             self._add_operation()
 
         return self.redirect()
@@ -225,7 +238,8 @@ class UserLabelsView(BaseUserView):
         context['home_labels'] = self.user.account.home.get_labels(
             home_only=True)
 
-        context['add_label_form'] = forms.AddLabelForm()
+        add_label_form = context.get('add_label_form') or forms.AddLabelForm()
+        context['add_label_form'] = add_label_form
 
         context['manage_home_labels'] = self.user.has_perm(
             'budget.manage_home_labels')
@@ -254,6 +268,7 @@ class UserLabelsView(BaseUserView):
 
         elif post.get('home_rm_id') is not None:
             label_id = post.get('home_rm_id')
+            self._rm_home_label(label_id)
 
         elif post.get('home_default') is not None:
             keep = post.get('home_default') == 'keep'
@@ -267,9 +282,15 @@ class UserLabelsView(BaseUserView):
         form = forms.AddLabelForm(self.request.POST)
         if form.is_valid():
             label = form.save(commit=False)
-            self.user.account.add_label(label=label)
+            added = self.user.account.add_label(label=label)
+            if added:
+                messages.success(self.request, 'Label added.')
+            else:
+                messages.error(
+                    self.request, f'Label {label.name} already exists.')
         else:
-            pass  # TODO
+            self.update_context(add_label_form=form)
+            messages.error(self.request, "Invalid label form.")
 
     def _rm_pers_label(self, label_id: str):
         """Removes a personal label if it belongs to the user account."""
@@ -277,8 +298,10 @@ class UserLabelsView(BaseUserView):
         labl = Label.objects.get(id=label_id)
         if labl.account == self.user.account:
             labl.delete()
+            messages.success(self.request, 'Label removed.')
         else:
-            pass  # TODO
+            messages.error(
+                self.request, 'Cannot delete someone else\'s label.')
 
     def _rename_pers_label(self):
         """Renames a personal label if it belongs to the user account."""
@@ -288,8 +311,16 @@ class UserLabelsView(BaseUserView):
         if form.is_valid():
             label_id = post.get('pers_rename_id')
             label = Label.objects.get(id=label_id)
+            new_name = form.cleaned_data.get('name')
             if label.account == self.user.account:
-                label.rename(new_name=form.cleaned_data.get('name'))
+                if label.rename(new_name=new_name):
+                    messages.success(self.request, 'Label renamed.')
+                else:
+                    messages.error(
+                        self.request, f'Label {new_name} already exists.')
+        else:
+            self.update_context(add_label_form=form)
+            messages.error(self.request, 'Invalid label form.')
 
     def _add_home_label(self):
         """Adds a new home label if the user has the permissions."""
@@ -298,9 +329,17 @@ class UserLabelsView(BaseUserView):
         if form.is_valid():
             label = form.save(commit=False)
             if self.user.has_perm('budget.manage_home_labels'):
-                self.user.account.home.add_label(label=label)
+                added = self.user.account.home.add_label(label=label)
+                if added:
+                    messages.success(self.request, 'Added a new home label.')
+                else:
+                    messages.error(
+                        self.request, f'Label {label.name} already exists.')
             else:
-                pass  # TODO
+                messages.error(self.request, 'Cannot delete home label.')
+        else:
+            self.update_context(add_label_form=form)
+            messages.error(self.request, 'Invalid label form.')
 
     def _rename_home_label(self):
         """Renames the home label."""
@@ -310,8 +349,20 @@ class UserLabelsView(BaseUserView):
         if form.is_valid():
             label_id = post.get('home_rename_id')
             label = Label.objects.get(id=label_id)
+            new_name = form.cleaned_data.get('name')
+
             if self.user.has_perm('budget.manage_home_labels') and label.home == self.user.account.home:
-                label.rename(new_name=form.cleaned_data.get('name'))
+
+                if label.rename(new_name=new_name):
+                    messages.success(self.request, 'Label renamed.')
+                else:
+                    messages.error(
+                        self.request, f'Label {new_name} already exists.')
+            else:
+                messages.error(self.request, 'Cannot rename the home label.')
+        else:
+            self.update_context(add_label_form=form)
+            messages.error(self.request, 'Invalid label form.')
 
     def _rm_home_label(self, label_id: str):
         """Removes a new home label if the user has the permissions."""
@@ -319,14 +370,18 @@ class UserLabelsView(BaseUserView):
         label = Label.objects.get(id=label_id)
         if self.user.has_perm('budget.manage_home_labels') and label.home == self.user.account.home:
             label.delete()
+            messages.success(self.request, 'Label removed.')
         else:
-            pass  # TODO
+            messages.error(self.request, 'Cannot remove home label.')
 
     def _restore_home_labels(self, keep: bool):
         """Restores the default home labels."""
 
         if self.user.has_perm('budget.manage_home_labels'):
             self.user.account.home.create_predefined_labels(keep_custom=keep)
+            messages.success(self.request, 'Default labels restored.')
+        else:
+            messages.error(self.request, 'Cannot restore default labels.')
 
 
 class CyclicOperationsView(BaseUserView):
@@ -341,7 +396,7 @@ class CyclicOperationsView(BaseUserView):
 
         context['operations'] = self.user.account.get_plans()
 
-        form = forms.PlanCyclicOperationForm.from_account(self.user.account)
+        form = context.get('add_cyclic_op_form') or forms.PlanCyclicOperationForm.from_account(self.user.account)
         context['add_cyclic_op_form'] = form
 
         return context
@@ -364,8 +419,9 @@ class CyclicOperationsView(BaseUserView):
         op = OperationPlan.objects.get(id=op_id)
         if op.account == self.user.account:
             op.delete()
+            messages.success(self.request, 'Cyclic operation plan removed.')
         else:
-            pass  # TODO
+            messages.error(self.request, 'Cannot remove someone else\'s plan.')
 
     def _add_plan(self):
         """Adds a new operation plan."""
@@ -374,6 +430,10 @@ class CyclicOperationsView(BaseUserView):
         if form.is_valid():
             plan = form.save(commit=False)
             self.user.account.add_operation_plan(plan=plan)
+            messages.success(self.request, 'Cyclic operation plan added.')
+        else:
+            self.update_context(form=form)
+            messages.error(self.request, 'Invalid plan form.')
 
 
 class BaseHomeView(BaseUserView):
@@ -397,8 +457,12 @@ class HomeView(BaseHomeView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        context['new_user_form'] = UserCreationForm()
-        context['transaction_form'] = forms.TransactionForm()
+        new_user_form = context.get('new_user_form') or UserCreationForm()
+        context['new_user_form'] = new_user_form
+        
+        transaction_form = context.get('transaction_form') or forms.TransactionForm()
+        context['transaction_form'] = transaction_form
+        
         context['accounts'] = Account.objects.filter(
             home=self.home).order_by('user__username')
 
@@ -437,12 +501,20 @@ class HomeView(BaseHomeView):
                 acc.delete()
             elif not acc.is_mod():
                 acc.delete()
-        else:
-            pass  # TODO
+
+            messages.success(self.request, 'Account removed.')
+            return
+
+        messages.error(self.request, 'Cannot remove the account.')
 
     def _create_user(self):
-        request = self.request
-        form = UserCreationForm(request.POST)
+        """Creates a user from the POST data. Returns the created Account or None."""
+        
+        if not self.user.has_perm('budget.manage_users'):
+            messages.error(self.request, 'Cannot create a new user.')
+            return
+        
+        form = UserCreationForm(self.request.POST)
         if form.is_valid():
             home = self.home
             account = Account(home=home)
@@ -452,18 +524,18 @@ class HomeView(BaseHomeView):
             account.save()
 
             messages.success(
-                request, f'User "{user.username}" was successfully created')
-
-            return account
+                self.request, f'User "{user.username}" was successfully created')
         else:
-            messages.error(request, 'Invalid user form.')
-            return None
+            self.update_context(new_user_form=form)
+            messages.error(self.request, 'Invalid user form.')
+            return
 
     def _make_transaction(self):
         """Makes a transaction to the specified user."""
 
         if not self.user.has_perm('budget.make_transactions'):
-            return  # TODO
+            messages.error(self.request, 'Cannot make a transaction.')
+            return
 
         post = self.request.POST
         form = forms.TransactionForm(post)
@@ -472,9 +544,14 @@ class HomeView(BaseHomeView):
         if form.is_valid():
             outcoming, incoming = form.make_transaction(
                 source=self.user.account, destination=destination)
+            
             valid = outcoming and incoming
-        if not valid:
-            messages.error('Invalid transaction form.')
+        
+        if valid:
+            messages.success('Transaction made.')
+        else:
+            self.update_context(transaction_form=form)
+            messages.error(self.request, 'Invalid transaction form.')
 
 
 @method_decorator(
@@ -554,7 +631,7 @@ class ManageUserView(BaseHomeView):
         context['is_mod'] = self.managed_acc.is_mod()
         context['make_mod'] = self.user.has_perm('budget.make_mod')
 
-        form = forms.ChangeUserPermissionsForm.from_account(self.managed_acc)
+        form = context.get('perm_form') or forms.ChangeUserPermissionsForm.from_account(self.managed_acc)
         context['granted_perms'] = form.all_perms
         context['perm_form'] = form
 
@@ -584,51 +661,72 @@ class ManageUserView(BaseHomeView):
         """Changes the user permissions"""
 
         if not self._check_account_and_perm():
-            return  # TODO
+            messages.error(self.request, 'Cannot change user permissions.')
+            return
 
         if self.managed_acc.is_mod() and not self.user.account.is_admin():
-            return  # TODO
+            messages.error(self.request, 'Cannot change moderator permissions.')
+            return
 
-        form = forms.ChangeUserPermissionsForm.from_post(self.managed_acc, self.request.POST)
+        form = forms.ChangeUserPermissionsForm.from_post(
+            self.managed_acc, self.request.POST)
         if form.is_valid():
             form.change_perms(self.managed_acc)
+            messages.success(self.request, 'Permissions changed.')
         else:
+            self.update_context(perm_form=form)
             messages.error(self.request, "Invalid user permissions form.")
 
     def _pass_admin(self):
         """Gives the admin role to another user."""
 
         if not self._check_account():
-            return redirect('/')  # TODO
+            messages.error(self.request, 'Error passing Admin to the specified user.')
+            return redirect('/')
 
         if self.user.account.is_admin():
             self.home.change_admin(self.managed_acc)
             for perm in MOD_PERMS:
                 self.user.account.add_perm(perm[0])
+            
+            messages.success(self.request, 'Admin role passed successfully.')
             return redirect('/home')
         else:
-            return redirect('/')  # TODO
+            messages.error(self.reqest, 'You are not an Administrator.')
+            return redirect('/')
 
     def _add_mod(self):
         """Adds a new home moderator."""
 
         if self._check_account() and self.user.has_perm('budget.make_mod') and not self.managed_acc.is_mod():
             self.home.add_mod(self.managed_acc)
+            messages.success(self.request, 'Moderator added.')
         else:
-            pass  # TODO
+            messages.error(self.request, 'Cannot add a Moderator.')
 
     def _rm_mod(self):
         """Removes a home mod."""
 
         if self._check_account() and self.user.has_perm('budget.make_mod') and self.managed_acc.is_mod():
             self.home.remove_mod(self.managed_acc)
+            messages.success(self.request, 'Moderator removed.')
         else:
-            pass  # TODO
+            messages.error(self.request, 'Cannot remove a Moderator.')
 
     def _rm_user(self):
         """Removes a user."""
 
         if self._check_account_and_perm():
-            if self.managed_acc.is_mod() and self.user.account.is_admin():
+            can_remove = False
+            if self.managed_acc.is_mod():
+                can_remove = self.user.account.is_admin()
+            else:
+                can_remove = True
+
+            if can_remove:
                 self.managed_acc.delete()
+                messages.success(self.request, 'User removed.')
+                return redirect(HomeView.redirect_name)
+
+        messages.error(self.request, 'Cannot remove the user.')
         return redirect(HomeView.redirect_name)

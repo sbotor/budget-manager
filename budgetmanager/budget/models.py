@@ -116,13 +116,17 @@ class Home(ConvenienceModel):
         return queryset
 
     def add_label(self, label: 'Label', commit: bool = True):
-        """Add a new personal home to the database. Returns the newly added Label.
+        """Add a new personal home to the database. Returns the newly added Label or None if unsuccessful.
 
         If `commit` is False the label is not saved to the database.
         """
 
         label.account = None
         label.home = self
+
+        if not label._check_unique_name():
+            return None
+
         if commit:
             label.save()
 
@@ -406,13 +410,17 @@ class Account(ConvenienceModel):
         return plans, ops
 
     def add_label(self, label: 'Label', commit: bool = True):
-        """Add a new personal label to the database. Returns the newly added Label.
+        """Add a new personal label to the database. Returns the newly added Label or None if unsuccessful.
 
         If `commit` is False the label is not saved to the database.
         """
 
         label.account = self
         label.home = self.home
+        
+        if not label._check_unique_name():
+            return None
+        
         if commit:
             label.save()
 
@@ -596,18 +604,37 @@ class Label(ConvenienceModel):
         return prefix + self.name
 
     def rename(self, new_name: str, commit: bool = True):
-        """Renames the label.
+        """Renames the label. Returns True if renaming was successful.
 
         If `commit` is False the Label is not saved to the database.
         """
+
+        if not self._check_unique_name(new_name):
+            return False
 
         self.name = new_name
         if commit:
             self.save()
 
+        return True
+
+    def _check_unique_name(self, new_name: str | None = None):
+        """Checks if the label is unique for the user and for the Home."""
+
+        new_name = new_name or self.name
+        
+        if not self.home:
+            return not Label.get_global().exists(new_name)
+
+        if not self.account: # Check if unique in Home
+            return not Label.objects.filter(home=self.home).filter(account=None).exists(name=new_name)
+
+        # Check if unique for the user
+        return not Label.objects.filter(account=self.account).exists(name=new_name)
+
     @staticmethod
-    def get_global(name: str):
-        """TODO"""
+    def get_global(name: str | None = None):
+        """Returns a global label with the specified name or all if no name is specified."""
 
         if not Label._global_initialized:
             Label._init_global()
