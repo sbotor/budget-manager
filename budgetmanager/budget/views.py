@@ -105,8 +105,7 @@ class AddHomeView(BaseTemplateView):
         if form.is_valid():
             form.save()
             home_name = form.cleaned_data.get('home_name')
-            messages.success(
-                request, f'Home "{home_name}" was successfully created')
+            messages.success(request, f'Home "{home_name}" was successfully created')
 
             return redirect(self.redirect_name)
 
@@ -347,8 +346,7 @@ class UserLabelsView(BaseUserView):
             if added:
                 messages.success(self.request, 'Label added.')
             else:
-                messages.error(
-                    self.request, f'Label "{label.name}" already exists.')
+                messages.error(self.request, f'Label "{label.name}" already exists.')
         else:
             self.update_context(add_label_form=form)
             messages.error(self.request, "Invalid label form.")
@@ -361,8 +359,7 @@ class UserLabelsView(BaseUserView):
             labl.delete()
             messages.success(self.request, 'Label removed.')
         else:
-            messages.error(
-                self.request, 'Cannot delete someone else\'s label.')
+            messages.error(self.request, 'Cannot delete someone else\'s label.')
 
     def _rename_pers_label(self):
         """Renames a personal label if it belongs to the user account."""
@@ -377,8 +374,7 @@ class UserLabelsView(BaseUserView):
                 if label.rename(new_name=new_name):
                     messages.success(self.request, 'Label renamed.')
                 else:
-                    messages.error(
-                        self.request, f'Label "{new_name}" already exists.')
+                    messages.error(self.request, f'Label "{new_name}" already exists.')
         else:
             self.update_context(add_label_form=form)
             messages.error(self.request, 'Invalid label form.')
@@ -394,8 +390,7 @@ class UserLabelsView(BaseUserView):
                 if added:
                     messages.success(self.request, 'Added a new home label.')
                 else:
-                    messages.error(
-                        self.request, f'Label "{label.name}" already exists.')
+                    messages.error(self.request, f'Label "{label.name}" already exists.')
             else:
                 messages.error(self.request, 'Cannot delete home label.')
         else:
@@ -417,8 +412,7 @@ class UserLabelsView(BaseUserView):
                 if label.rename(new_name=new_name):
                     messages.success(self.request, 'Label renamed.')
                 else:
-                    messages.error(
-                        self.request, f'Label "{new_name}" already exists.')
+                    messages.error(self.request, f'Label "{new_name}" already exists.')
             else:
                 messages.error(self.request, 'Cannot rename the home label.')
         else:
@@ -591,8 +585,7 @@ class HomeView(BaseHomeView):
             account.user = user
             account.save()
 
-            messages.success(
-                self.request, f'User "{user.username}" was successfully created')
+            messages.success(self.request, f'User "{user.username}" was successfully created')
         else:
             self.update_context(new_user_form=form)
             messages.error(self.request, 'Invalid user form.')
@@ -616,7 +609,7 @@ class HomeView(BaseHomeView):
             valid = outcoming and incoming
         
         if valid:
-            messages.success('Transaction made.')
+            messages.success(self.request, 'Transaction made.')
         else:
             self.update_context(transaction_form=form)
             messages.error(self.request, 'Invalid transaction form.')
@@ -802,7 +795,7 @@ class ManageUserView(BaseHomeView):
             messages.success(self.request, 'Admin role passed successfully.')
             return redirect('/home')
         else:
-            messages.error(self.reqest, 'You are not an Administrator.')
+            messages.error(self.request, 'You are not an Administrator.')
             return redirect('/')
 
     def _add_mod(self):
