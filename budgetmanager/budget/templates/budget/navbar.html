@@ -21,7 +21,8 @@
                     <a class=nav-link href='/home'>{{ user.account.home.name }}</a>
                 </li>
                 <li class="nav-item">
-                    <a class=nav-link href='/user'>{{ user.account.get_username }}</a>
+                    <a class=nav-link href='/user'>{{ user.account.get_username }}
+                        {% if view_as %}*{% endif %}</a>
                 </li>
                 <li class="nav-item ms-5">
                     <a class="btn btn-outline-danger nav-link" href="/logout">Logout</a>

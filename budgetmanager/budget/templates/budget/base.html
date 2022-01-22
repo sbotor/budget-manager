@@ -23,7 +23,13 @@
     {% if user.is_authenticated %}
     <div class="container">
         {% if view_as %}
-        <div class="row">Viewing as {{ view_as.get_username }}</div>
+        <div class="row mb-3">
+            <h2 class="col-auto">Viewing as <b>{{ view_as.get_username }}</b></h2>
+            <form method="POST" action="view_as" class="col-auto"> {% csrf_token %}
+                <button type="submit" name="end"
+                    class="col-auto btn btn-outline-danger">End view as</button>
+            </form>
+        </div>
         {% endif %}
         {% block content %}
         {% endblock %}

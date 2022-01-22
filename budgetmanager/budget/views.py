@@ -1,11 +1,11 @@
 from abc import ABC
-from django import dispatch
+from email.errors import MessageError
 from django.http.request import HttpRequest
 from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.utils.decorators import method_decorator
 from django.contrib.auth.decorators import login_required, permission_required
-from django.views.generic.base import TemplateView
+from django.views.generic.base import TemplateView, View
 from django.contrib.auth.forms import UserCreationForm
 
 from .models import *
@@ -16,6 +16,50 @@ from .decorators import home_required
 def index(request: HttpRequest):
     return render(request, 'budget/index.html')
 
+@method_decorator(
+    (login_required(), home_required(), permission_required('budget.plan_for_others')),
+    name='dispatch')
+class ViewAsView(View):
+    """View for managin operations as another user. It serves mostly as a session-changing redirect."""
+
+    def post(self, request: HttpRequest, *args, **kwargs):
+
+        post = request.POST
+        if post.get('begin') is not None:
+            return self._begin()
+        elif post.get('end') is not None:
+            return self._end()
+
+        return redirect('/')
+
+
+    def _begin(self):
+        "Starts a new view as session."
+
+        request = self.request
+        username = request.POST.get('begin')
+
+        try:
+            view_account = User.objects.filter(username=username).get().account
+            if not request.user.has_perm('budget.plan_for_others') or request.user.account.home != view_account.home:
+                messages.error(request, 'Cannot perform view as.')
+
+            request.session['view_as'] = view_account.user.username
+
+            return redirect(UserView.redirect_name)
+
+        except User.DoesNotExist or Account.DoesNotExist or AttributeError:
+                messages.error(request, 'Problem performing view as.')
+                return redirect('/')
+
+    def _end(self):
+        """Ends the view as session."""
+
+        request = self.request
+        if request.session.get('view_as'):
+            del request.session['view_as']
+        
+        return redirect('/home')
 
 class BaseTemplateView(TemplateView):
     """Base view for template rendering with context and convenient redirecting."""
@@ -80,10 +124,25 @@ class BaseUserView(ABC, BaseTemplateView):
     """Abstract class for user-specific view inheritance."""
 
     def setup(self, request: HttpRequest, *args, **kwargs):
-        self.user = request.user
+        
+        view_as = request.session.get('view_as')
+        if view_as:
+            self.user = User.objects.filter(username=view_as).get()
+            self.actual_user = request.user
+        else:
+            self.user = request.user
+            self.actual_user = None
 
         super().setup(request, *args, **kwargs)
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        context['view_as'] = self.user.account if self.actual_user else None
+        context['user'] = self.user
+
+        return context
+    
     def _add_operation(self):
         """Adds the operation from the POST data if valid. Returns True if successful."""
 
@@ -211,7 +270,7 @@ class OpHistoryView(BaseUserView):
     def post(self, request: HttpRequest, *args, **kwargs):
         if request.POST.get('rm_id') is not None:
             op_id = request.POST.get('rm_id')
-            self._rm(op_id)
+            self._rm_op(op_id)
 
         elif request.POST.get('fin_id') is not None:
             op_id = request.POST.get('fin_id')
@@ -388,7 +447,7 @@ class UserLabelsView(BaseUserView):
 
 
 class CyclicOperationsView(BaseUserView):
-    """TODO"""
+    """View for managing cyclic operations."""
 
     template_name = 'budget/user/planned_operations.html'
 
@@ -443,6 +502,9 @@ class BaseHomeView(BaseUserView):
     """Abstract class serving as base for Home-oriented views."""
 
     def setup(self, request: HttpRequest, *args, **kwargs):
+        if request.session.get('view_as'):
+            del request.session['view_as']
+        
         super().setup(request, *args, **kwargs)
 
         usr = self.user
@@ -460,6 +522,8 @@ class HomeView(BaseHomeView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
+        context['view_as'] = None
+
         new_user_form = context.get('new_user_form') or UserCreationForm()
         context['new_user_form'] = new_user_form
         
@@ -474,6 +538,8 @@ class HomeView(BaseHomeView):
             'budget.see_other_accounts')
         context['make_transactions'] = self.user.has_perm(
             'budget.make_transactions')
+
+        context['can_view_as'] = self.user.has_perm('budget.plan_for_others')
 
         return context
 
@@ -586,7 +652,7 @@ class AccountView(BaseUserView):
         if self.redirect_name:
             return super().dispatch(request, *args, **kwargs)
 
-        return redirect('/home')
+        return ManageUserView.as_view()(request, *args, **kwargs)
 
     def post(self, request: HttpRequest, *args, **kwargs):
         
@@ -657,9 +723,6 @@ class ManageUserView(BaseHomeView):
     def dispatch(self, request: HttpRequest, *args, **kwargs):
         if self.managed_acc and self._check_account_and_perm():
             return super().dispatch(request, *args, **kwargs)
-
-        if self.user.account == self.managed_acc:
-            return AccountView.as_view()(request, *args, **kwargs)
 
         return redirect('/home')
 

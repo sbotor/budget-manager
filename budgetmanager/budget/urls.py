@@ -9,7 +9,8 @@ urlpatterns = [
     path('user/planned', views.CyclicOperationsView.as_view(), name='planned_operations'),
     
     path('home', views.HomeView.as_view(), name='user_home'),
-    path('home/<str:username>', views.ManageUserView.as_view(), name='manage_user'),
+    path('home/<str:username>', views.AccountView.as_view(), name='manage_user'),
+    path('view_as', views.ViewAsView.as_view(), name='view_as'),
 
     path('new/', views.AddHomeView.as_view(), name='new_home'),
 ]

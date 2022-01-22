@@ -18,6 +18,13 @@
                 </div>
                 {% endif %}
 
+                {% if can_view_as and account.id != account.home.admin.id and account.id != user.account.id %}
+                <form method="POST" action="view_as" class="col-auto"> {% csrf_token %}
+                    <button type="submit" name="begin" value="{{ account.user.username }}"
+                        class="col-auto btn btn-secondary">View as</button>
+                </form>
+                {% endif %}
+
                 {% if manage_users and account.id != account.home.admin.id and account.id != user.account.id %}
                 <div class="col-auto">
                     <a href="home/{{ account.user.username }}" class="btn btn-primary">Manage</a>
