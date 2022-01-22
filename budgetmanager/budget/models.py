@@ -264,7 +264,7 @@ class Account(ConvenienceModel):
         ret_str = ""
 
         if self.user.first_name:
-            ret_str = f'self.user.first_name ({self.user.username})'
+            ret_str = f'{self.user.first_name} ({self.user.username})'
         else:
             ret_str = self.user.username
 
