@@ -4,6 +4,7 @@ from django.db.models.query_utils import Q
 from django.contrib.auth.models import Permission, Group, User
 from django.utils.translation import gettext_lazy as _
 from django.core.validators import MaxValueValidator, MinValueValidator
+import decimal
 
 from .utils import today
 
@@ -251,6 +252,9 @@ class Account(ConvenienceModel):
         Home, on_delete=models.CASCADE, verbose_name='Home')
     """Home that the account belongs to."""
 
+    MAX_AMOUNT = decimal.Decimal('999999.99')
+    """Maximum value for an Account's amount."""
+
     current_amount = models.DecimalField(
         decimal_places=2, max_digits=8, default=0.0, verbose_name='Current amount of money')
     """Current amount of money that the account has."""
@@ -268,7 +272,22 @@ class Account(ConvenienceModel):
     def save(self, force_insert: bool = False, force_update: bool = False, using=None, update_fields=None):
         self.user.save()
 
-        super().save(force_insert=force_insert, force_update=force_update,
+        try:
+            with transaction.atomic():
+                super().save(force_insert=force_insert, force_update=force_update,
+                     using=using, update_fields=update_fields)
+        except decimal.InvalidOperation:
+            if self.final_amount > self.MAX_AMOUNT:
+                self.final_amount = self.MAX_AMOUNT
+            elif self.final_amount < -self.MAX_AMOUNT:
+                self.final_amount = -self.MAX_AMOUNT
+
+            if self.current_amount > self.MAX_AMOUNT:
+                self.current_amount = self.MAX_AMOUNT
+            elif self.current_amount < -self.MAX_AMOUNT:
+                self.current_amount = -self.MAX_AMOUNT
+
+            super().save(force_insert=force_insert, force_update=force_update,
                      using=using, update_fields=update_fields)
 
     def calculate_final(self):
