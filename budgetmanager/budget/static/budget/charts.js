@@ -120,7 +120,7 @@ function renderBarChart(target, income, expenses) {
         ]
     };
 
-    new Chart(barChart, {
+    new Chart(target, {
         type: 'bar',
         data: barData,
         options: {

@@ -86,6 +86,12 @@ class Home(ConvenienceModel):
         choices=Currency.choices, max_length=5, verbose_name='Home currency')
     """Home currency for all Accounts."""
 
+    MAX_ACCOUNTS = 12
+    """Maximum number of users in one Home."""
+
+    MAX_LABELS = 10
+    """Maximum number of non-default labels that can be created for a Home."""
+
     def __str__(self):
         return self.name
 
@@ -102,6 +108,21 @@ class Home(ConvenienceModel):
         home.save()
 
         return home
+
+    def remove(self):
+        """Removes the entire home including all Operations and accounts."""
+
+        accounts = Account.objects.filter(home=self)
+
+        for acc in accounts:
+            if acc != self.admin:
+                acc.delete()
+            else:
+                self.admin = None
+                self.save()
+                acc.delete()
+        
+        self.delete()
 
     def get_labels(self, home_only: bool = False):
         """Return all the labels available to the Home excluding global labels.
@@ -237,6 +258,9 @@ class Account(ConvenienceModel):
     final_amount = models.DecimalField(
         decimal_places=2, max_digits=8, default=0.0, verbose_name='Final amount of money')
     """Amount of money after all the operations are finalized."""
+
+    MAX_LABELS = 6
+    """Maximum number of labels that can be created for a user."""
 
     def __str__(self):
         return self.user.username
@@ -589,6 +613,16 @@ class Account(ConvenienceModel):
 
         self.user.first_name = new_name
         self.user.save()
+
+    def get_title(self):
+        """Returns the account title ([Administrator], [Moderator] or an empty string)."""
+
+        if self.is_admin():
+            return '[Administrator]'
+        elif self.is_mod():
+            return '[Moderator]'
+        else:
+            return ''
 
     def _fetch_perms(self, descriptions: bool = False):
         """Returns granted user permissions without the default ones.
