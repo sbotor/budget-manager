@@ -172,8 +172,7 @@ class BaseUserView(ABC, BaseTemplateView):
             messages.success(self.request, 'Operation removed.')
             return self.redirect()
         else:
-            messages.error(
-                self.request, 'Cannot remove someone else\'s operation.')
+            messages.error(self.request, 'Cannot remove someone else\'s operation.')
             return self.redirect()
 
     def _fin_op(self, op_id: int):
@@ -185,8 +184,7 @@ class BaseUserView(ABC, BaseTemplateView):
             messages.success(self.request, 'Operation finalized.')
             return self.redirect()
         else:
-            messages.error(
-                self.request, 'Cannot finalize someone else\'s operation.')
+            messages.error(self.request, 'Cannot finalize someone else\'s operation.')
             return self.redirect()
 
     def _make_transaction(self):
@@ -396,8 +394,7 @@ class UserLabelsView(BaseUserView):
             if added:
                 messages.success(self.request, 'Label added.')
             else:
-                messages.error(
-                    self.request, f'Label "{label.name}" already exists.')
+                messages.error(self.request, f'Label "{label.name}" already exists.')
 
             return self.redirect()
         else:
@@ -430,8 +427,7 @@ class UserLabelsView(BaseUserView):
                 if label.rename(new_name=new_name):
                     messages.success(self.request, 'Label renamed.')
                 else:
-                    messages.error(
-                        self.request, f'Label "{new_name}" already exists.')
+                    messages.error(self.request, f'Label "{new_name}" already exists.')
 
             return self.redirect()
         else:
@@ -672,8 +668,7 @@ class HomeView(BaseHomeView):
             account.user = user
             account.save()
 
-            messages.success(
-                self.request, f'User "{user.username}" was successfully created')
+            messages.success(self.request, f'User "{user.username}" was successfully created')
             return self.redirect()
         else:
             self.update_context(new_user_form=form)
@@ -698,7 +693,7 @@ class HomeView(BaseHomeView):
             valid = outcoming and incoming
 
         if valid:
-            messages.success('Transaction made.')
+            messages.success(self.request, 'Transaction made.')
             return self.redirect()
         else:
             self.update_context(transaction_form=form)
@@ -867,8 +862,7 @@ class ManageUserView(BaseHomeView):
             return self.redirect()
 
         if self.managed_acc.is_mod() and not self.user.account.is_admin():
-            messages.error(
-                self.request, 'Cannot change moderator permissions.')
+            messages.error(self.request, 'Cannot change moderator permissions.')
             return self.redirect()
 
         form = forms.ChangeUserPermissionsForm.from_post(
@@ -886,8 +880,7 @@ class ManageUserView(BaseHomeView):
         """Gives the admin role to another user."""
 
         if not self._check_account():
-            messages.error(
-                self.request, 'Error passing Admin to the specified user.')
+            messages.error(self.request, 'Error passing Admin to the specified user.')
             return redirect('/')
 
         if self.user.account.is_admin():
