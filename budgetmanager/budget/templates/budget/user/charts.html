@@ -1,0 +1,9 @@
+{% load static %}
+
+<div id="income" hidden="true">{{ income }}</div>
+<div id="expenses" hidden="true">{{ expenses }}</div>
+<div id="operationData" hidden="true">{{ operation_data }}</div>
+<div id="currency" hidden="true">{{ user.account.home.currency }}</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="{% static 'budget/charts.js' %}"></script>

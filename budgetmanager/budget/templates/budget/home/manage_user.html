@@ -10,7 +10,14 @@
             <a href="/home" class="btn btn-outline-primary mb-3">Back to Home</a>
         </div>
     </div>
-    <h3>Manage user {{ managed_acc.get_username }}</h3>
+
+    <div class="row mb-3">
+        <h3 class="col-auto">Manage user {{ managed_acc.get_username }} <i>{{ managed_acc.get_title }}</i></h3>
+        <button class="btn btn-outline-secondary col-auto" data-bs-toggle="modal"
+            data-bs-target="#renameUserModal">Rename</button>
+        {% include 'budget/home/modals/rename_user_modal.html' %}
+    </div>
+
     <div class="row">
         {% if make_mod %}
         {% if is_mod %}
@@ -21,7 +28,8 @@
         {% include 'budget/home/modals/unmake_mod_confirmation_modal.html' %}
         {% else %}
         <div class="col-auto">
-            <button class="btn btn-primary col-auto mt-3" data-bs-toggle="modal" data-bs-target="#makeModModal">Grant Moderator
+            <button class="btn btn-primary col-auto mt-3" data-bs-toggle="modal" data-bs-target="#makeModModal">Grant
+                Moderator
                 permissions</button>
         </div>
         {% include 'budget/home/modals/make_mod_confirmation_modal.html' %}
@@ -37,14 +45,12 @@
                 </div>
         </form>
     </div>
-    <div class="row my-3">
+    <div class="row mt-3 mb-3">
         <div class="col-6">
-        <h4 class="mt-3 mb-2">Granted user permissions</h4>
+            <h4 class="mt-3 mb-2">Granted user permissions</h4>
             <ul class="list-group">
                 {% for perm in granted_perms %}
-
                 <li class="list-group-item">{{ perm }}</li>
-
                 {% empty %}
                 <h5 class="mt-1 ms-1">None</h5>
                 {% endfor %}
@@ -61,14 +67,6 @@
         </div>
     </div>
     {% endif %}
-
-    <div class="row">
-        <h4 class="mb-2 mt-5">Rename user</h4>
-        <div class="col">
-            <button class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#renameUserModal">Rename user</button>
-            {% include 'budget/home/modals/rename_user_modal.html' %}
-        </div>
-    </div>
 
     <div class="row">
         <h4 class="mb-2 mt-5">Remove user</h4>

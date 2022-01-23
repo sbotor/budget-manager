@@ -6,9 +6,7 @@
         <li class="list-group-item">
             <div class="row m-2">
                 <div class="col-4">
-                    {{ account.get_username }}
-                    {% if account.is_admin %} <i>[Administrator]</i>
-                    {% elif account.is_mod %} <i>[Moderator]</i> {% endif %}
+                    {{ account.get_username }} <i>{{ account.get_title }}</i>
                     {% if account.id == user.account.id %} <b>[You]</b>{% endif %}
                 </div>
                 {% if make_transactions and account.id != user.account.id %}

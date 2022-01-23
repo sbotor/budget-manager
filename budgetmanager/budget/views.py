@@ -6,6 +6,7 @@ from django.utils.decorators import method_decorator
 from django.contrib.auth.decorators import login_required, permission_required
 from django.views.generic.base import TemplateView, View
 from django.contrib.auth.forms import UserCreationForm
+import json
 
 from .models import *
 from . import forms
@@ -15,8 +16,10 @@ from .decorators import home_required
 def index(request: HttpRequest):
     return render(request, 'budget/index.html')
 
+
 @method_decorator(
-    (login_required(), home_required(), permission_required('budget.plan_for_others')),
+    (login_required(), home_required(),
+     permission_required('budget.plan_for_others')),
     name='dispatch')
 class ViewAsView(View):
     """View for managin operations as another user. It serves mostly as a session-changing redirect."""
@@ -30,7 +33,6 @@ class ViewAsView(View):
             return self._end()
 
         return redirect('/')
-
 
     def _begin(self):
         "Starts a new view as session."
@@ -48,8 +50,8 @@ class ViewAsView(View):
             return redirect(UserView.redirect_name)
 
         except User.DoesNotExist or Account.DoesNotExist or AttributeError:
-                messages.error(request, 'Problem performing view as.')
-                return redirect('/')
+            messages.error(request, 'Problem performing view as.')
+            return redirect('/')
 
     def _end(self):
         """Ends the view as session."""
@@ -57,8 +59,9 @@ class ViewAsView(View):
         request = self.request
         if request.session.get('view_as'):
             del request.session['view_as']
-        
+
         return redirect('/home')
+
 
 class BaseTemplateView(TemplateView):
     """Base view for template rendering with context and convenient redirecting."""
@@ -71,6 +74,11 @@ class BaseTemplateView(TemplateView):
 
         return redirect(self.redirect_name)
 
+    def render(self):
+        """Renders the page with appropriate context."""
+
+        return render(self.request, self.template_name, self.get_context_data())
+
     def update_context(self, context: dict = None, **kwargs):
         """Method adding passed keyword arguments to the view's extra_context."""
 
@@ -81,7 +89,6 @@ class BaseTemplateView(TemplateView):
             self.extra_context.update(context)
         if kwargs:
             self.extra_context.update(kwargs)
-
 
 
 class AddHomeView(BaseTemplateView):
@@ -112,7 +119,7 @@ class AddHomeView(BaseTemplateView):
         else:
             self.update_context(form=form)
 
-            return render(request, self.template_name, self.get_context_data())
+            return self.render()
 
 
 @method_decorator(
@@ -122,7 +129,7 @@ class BaseUserView(ABC, BaseTemplateView):
     """Abstract class for user-specific view inheritance."""
 
     def setup(self, request: HttpRequest, *args, **kwargs):
-        
+
         view_as = request.session.get('view_as')
         if view_as:
             self.user = User.objects.filter(username=view_as).get()
@@ -140,7 +147,7 @@ class BaseUserView(ABC, BaseTemplateView):
         context['user'] = self.user
 
         return context
-    
+
     def _add_operation(self):
         """Adds the operation from the POST data if valid. Returns True if successful."""
 
@@ -149,12 +156,12 @@ class BaseUserView(ABC, BaseTemplateView):
             op = form.save(commit=False)
             self.user.account.add_operation(operation=op)
             messages.success(self.request, 'Operation added.')
-            return True
+            return self.redirect()
 
         else:
             self.update_context(add_op_form=form)
             messages.error(self.request, 'Invalid operation form.')
-            return False
+            return self.render()
 
     def _rm_op(self, op_id: int):
         """Removes an operation if it belongs to the user."""
@@ -163,8 +170,11 @@ class BaseUserView(ABC, BaseTemplateView):
         if op.account == self.user.account:
             op.delete()
             messages.success(self.request, 'Operation removed.')
+            return self.redirect()
         else:
-            messages.error(self.request, 'Cannot remove someone else\'s operation.')
+            messages.error(
+                self.request, 'Cannot remove someone else\'s operation.')
+            return self.redirect()
 
     def _fin_op(self, op_id: int):
         """Finalizes an operation if it belongs to the user."""
@@ -173,8 +183,11 @@ class BaseUserView(ABC, BaseTemplateView):
         if op.account == self.user.account:
             op.finalize()
             messages.success(self.request, 'Operation finalized.')
+            return self.redirect()
         else:
-            messages.error(self.request, 'Cannot finalize someone else\'s operation.')
+            messages.error(
+                self.request, 'Cannot finalize someone else\'s operation.')
+            return self.redirect()
 
     def _make_transaction(self):
         """Makes a transaction based on the POST data."""
@@ -186,12 +199,14 @@ class BaseUserView(ABC, BaseTemplateView):
             outcoming, incoming = form.make_transaction(
                 source=self.user.account)
             valid = outcoming and incoming
-        
+
         if valid:
             messages.success(self.request, 'Transaction made.')
+            return self.redirect()
         else:
             self.update_context(transaction_form=form)
             messages.error(self.request, 'Invalid transaction form.')
+            return self.render()
 
 
 class UserView(BaseUserView):
@@ -205,23 +220,52 @@ class UserView(BaseUserView):
         context = super().get_context_data(**kwargs)
 
         context['operations'] = self.user.account.get_operations()[:5]
-        context['allOperations'] = self.user.account.get_operations().order_by('-id')
         context['final_amount'] = self.user.account.final_amount
         context['current_amount'] = self.user.account.current_amount
 
-        context['income'] = self.user.account.get_this_year_income()
-        context['expenses'] = self.user.account.get_this_year_expenses()
-
-        add_op_form = context.get('add_op_form') or forms.AddOperationForm.from_account(self.user.account)
+        add_op_form = context.get(
+            'add_op_form') or forms.AddOperationForm.from_account(self.user.account)
         context['add_op_form'] = add_op_form
 
-        trans_form = context.get('transaction_form') or forms.TransDestinationForm.from_account(self.user.account)
+        trans_form = context.get(
+            'transaction_form') or forms.TransDestinationForm.from_account(self.user.account)
         context['transaction_form'] = trans_form
 
         context['make_transactions'] = self.user.has_perm(
             'budget.make_transactions')
 
+        self._update_chart_data(context)
+
         return context
+
+    def _update_chart_data(self, context: dict):
+        """Updates the chart data for the user."""
+
+        context['allOperations'] = self.user.account.get_operations().order_by('-id')
+
+        income_string = [str(el)
+                         for el in self.user.account.get_this_year_income()]
+        context['income'] = ','.join(income_string)
+
+        expenses_string = [str(el)
+                           for el in self.user.account.get_this_year_expenses()]
+        context['expenses'] = ','.join(expenses_string)
+
+        context['operation_data'] = self._get_operations_json()
+
+    def _get_operations_json(self):
+        """Creates a JSON of this month\'s operations."""
+
+        operations = self.user.account.get_this_month_operations()
+        op_list = []
+
+        for op in operations:
+            op_list.append(json.dumps({
+                'amount': str(op.amount),
+                'label': [str(op.label.id), str(op.label)] if op.label else ['0', 'No label'],
+            }))
+
+        return json.dumps(op_list)
 
     def post(self, request: HttpRequest, *args, **kwargs):
         """Modifies the user page and renders it."""
@@ -230,17 +274,17 @@ class UserView(BaseUserView):
 
         if post.get('rm_id') is not None:  # Remove an operation
             op_id = post.get('rm_id')
-            self._rm_op(op_id)
+            return self._rm_op(op_id)
 
         elif post.get('fin_id') is not None:  # Finalize an operation
             op_id = post.get('fin_id')
-            self._fin_op(op_id)
+            return self._fin_op(op_id)
 
         elif post.get('add_operation') is not None:  # Add a new operation
-            self._add_operation()
+            return self._add_operation()
 
         elif post.get('transaction') is not None:
-            self._make_transaction()
+            return self._make_transaction()
 
         elif post.get('refresh') is not None:
             self.user.account.recalculate_amounts()
@@ -260,7 +304,8 @@ class OpHistoryView(BaseUserView):
 
         context['operations'] = self.user.account.get_operations()
 
-        add_op_form = context.get('add_op_form') or forms.AddOperationForm.from_account(self.user.account)
+        add_op_form = context.get(
+            'add_op_form') or forms.AddOperationForm.from_account(self.user.account)
         context['add_op_form'] = add_op_form
 
         return context
@@ -268,17 +313,17 @@ class OpHistoryView(BaseUserView):
     def post(self, request: HttpRequest, *args, **kwargs):
         if request.POST.get('rm_id') is not None:
             op_id = request.POST.get('rm_id')
-            self._rm_op(op_id)
+            return self._rm_op(op_id)
 
         elif request.POST.get('fin_id') is not None:
             op_id = request.POST.get('fin_id')
-            self._fin_op(op_id)
+            return self._fin_op(op_id)
 
         elif request.POST.get('fin_all') is not None:
             self.user.account.finalize_operations()
 
         elif request.POST.get('add_operation') is not None:
-            self._add_operation()
+            return self._add_operation()
 
         return self.redirect()
 
@@ -311,33 +356,38 @@ class UserLabelsView(BaseUserView):
         post = request.POST
 
         if post.get('add_pers_label') is not None:
-            self._add_pers_label()
+            return self._add_pers_label()
 
         elif post.get('pers_rm_id') is not None:
             label_id = post.get('pers_rm_id')
-            self._rm_pers_label(label_id)
+            return self._rm_pers_label(label_id)
 
         elif post.get('pers_rename_id') is not None:
-            self._rename_pers_label()
+            return self._rename_pers_label()
 
         elif post.get('add_home_label') is not None:
-            self._add_home_label()
+            return self._add_home_label()
 
         elif post.get('home_rename_id') is not None:
-            self._rename_home_label()
+            return self._rename_home_label()
 
         elif post.get('home_rm_id') is not None:
             label_id = post.get('home_rm_id')
-            self._rm_home_label(label_id)
+            return self._rm_home_label(label_id)
 
         elif post.get('home_default') is not None:
             keep = post.get('home_default') == 'keep'
-            self._restore_home_labels(keep=keep)
+            return self._restore_home_labels(keep=keep)
 
         return self.redirect()
 
     def _add_pers_label(self):
         """Adds a personal label to the user account."""
+
+        label_count = Label.objects.filter(account=self.user.account).count()
+        if label_count >= Account.MAX_LABELS:
+            messages.error(self.request, f'Maximum number of personal labels reached ({Account.MAX_LABELS}).')
+            return self.redirect()
 
         form = forms.AddLabelForm(self.request.POST)
         if form.is_valid():
@@ -346,10 +396,14 @@ class UserLabelsView(BaseUserView):
             if added:
                 messages.success(self.request, 'Label added.')
             else:
-                messages.error(self.request, f'Label "{label.name}" already exists.')
+                messages.error(
+                    self.request, f'Label "{label.name}" already exists.')
+
+            return self.redirect()
         else:
             self.update_context(add_label_form=form)
             messages.error(self.request, "Invalid label form.")
+            return self.render()
 
     def _rm_pers_label(self, label_id: str):
         """Removes a personal label if it belongs to the user account."""
@@ -360,6 +414,8 @@ class UserLabelsView(BaseUserView):
             messages.success(self.request, 'Label removed.')
         else:
             messages.error(self.request, 'Cannot delete someone else\'s label.')
+
+        return self.redirect()
 
     def _rename_pers_label(self):
         """Renames a personal label if it belongs to the user account."""
@@ -374,14 +430,23 @@ class UserLabelsView(BaseUserView):
                 if label.rename(new_name=new_name):
                     messages.success(self.request, 'Label renamed.')
                 else:
-                    messages.error(self.request, f'Label "{new_name}" already exists.')
+                    messages.error(
+                        self.request, f'Label "{new_name}" already exists.')
+
+            return self.redirect()
         else:
             self.update_context(add_label_form=form)
             messages.error(self.request, 'Invalid label form.')
+            return self.render()
 
     def _add_home_label(self):
         """Adds a new home label if the user has the permissions."""
 
+        label_count = self.user.account.home.get_labels(home_only=True).exclude(is_default=True).count()
+        if label_count >= Home.MAX_LABELS:
+            messages.error(self.request, f'Maximum number of non-default Home labels reached ({Home.MAX_LABELS}).')
+            return self.redirect()
+        
         form = forms.AddLabelForm(self.request.POST)
         if form.is_valid():
             label = form.save(commit=False)
@@ -393,9 +458,12 @@ class UserLabelsView(BaseUserView):
                     messages.error(self.request, f'Label "{label.name}" already exists.')
             else:
                 messages.error(self.request, 'Cannot delete home label.')
+
+            return self.redirect()
         else:
             self.update_context(add_label_form=form)
             messages.error(self.request, 'Invalid label form.')
+            return self.render()
 
     def _rename_home_label(self):
         """Renames the home label."""
@@ -415,9 +483,12 @@ class UserLabelsView(BaseUserView):
                     messages.error(self.request, f'Label "{new_name}" already exists.')
             else:
                 messages.error(self.request, 'Cannot rename the home label.')
+
+            return self.redirect()
         else:
             self.update_context(add_label_form=form)
             messages.error(self.request, 'Invalid label form.')
+            return self.render()
 
     def _rm_home_label(self, label_id: str):
         """Removes a new home label if the user has the permissions."""
@@ -429,6 +500,8 @@ class UserLabelsView(BaseUserView):
         else:
             messages.error(self.request, 'Cannot remove home label.')
 
+        return self.redirect()
+
     def _restore_home_labels(self, keep: bool):
         """Restores the default home labels."""
 
@@ -437,6 +510,8 @@ class UserLabelsView(BaseUserView):
             messages.success(self.request, 'Default labels restored.')
         else:
             messages.error(self.request, 'Cannot restore default labels.')
+
+        return self.redirect()
 
 
 class CyclicOperationsView(BaseUserView):
@@ -451,7 +526,8 @@ class CyclicOperationsView(BaseUserView):
 
         context['operations'] = self.user.account.get_plans()
 
-        form = context.get('add_cyclic_op_form') or forms.PlanCyclicOperationForm.from_account(self.user.account)
+        form = context.get('add_cyclic_op_form') or forms.PlanCyclicOperationForm.from_account(
+            self.user.account)
         context['add_cyclic_op_form'] = form
 
         return context
@@ -461,10 +537,10 @@ class CyclicOperationsView(BaseUserView):
 
         if post.get('rm_id') is not None:
             op_id = post.get('rm_id')
-            self._rm_plan(op_id)
+            return self._rm_plan(op_id)
 
         elif post.get('add_cyclic_op') is not None:
-            self._add_plan()
+            return self._add_plan()
 
         return self.redirect()
 
@@ -478,6 +554,8 @@ class CyclicOperationsView(BaseUserView):
         else:
             messages.error(self.request, 'Cannot remove someone else\'s plan.')
 
+        return self.redirect()
+
     def _add_plan(self):
         """Adds a new operation plan."""
 
@@ -486,9 +564,11 @@ class CyclicOperationsView(BaseUserView):
             plan = form.save(commit=False)
             self.user.account.add_operation_plan(plan=plan)
             messages.success(self.request, 'Cyclic operation plan added.')
+            return self.redirect()
         else:
             self.update_context(form=form)
             messages.error(self.request, 'Invalid plan form.')
+            return self.render()
 
 
 class BaseHomeView(BaseUserView):
@@ -497,7 +577,7 @@ class BaseHomeView(BaseUserView):
     def setup(self, request: HttpRequest, *args, **kwargs):
         if request.session.get('view_as'):
             del request.session['view_as']
-        
+
         super().setup(request, *args, **kwargs)
 
         usr = self.user
@@ -519,10 +599,11 @@ class HomeView(BaseHomeView):
 
         new_user_form = context.get('new_user_form') or UserCreationForm()
         context['new_user_form'] = new_user_form
-        
-        transaction_form = context.get('transaction_form') or forms.TransactionForm()
+
+        transaction_form = context.get(
+            'transaction_form') or forms.TransactionForm()
         context['transaction_form'] = transaction_form
-        
+
         context['accounts'] = Account.objects.filter(
             home=self.home).order_by('user__username')
 
@@ -541,13 +622,13 @@ class HomeView(BaseHomeView):
 
         if post.get('rm_id'):
             acc_id = post.get('rm_id')
-            self._rm_account(acc_id)
+            return self._rm_account(acc_id)
 
         elif post.get('create') is not None:
-            self._create_user()
+            return self._create_user()
 
         elif post.get('transaction') is not None:
-            self._make_transaction()
+            return self._make_transaction()
 
         return self.redirect()
 
@@ -565,17 +646,23 @@ class HomeView(BaseHomeView):
                 acc.delete()
 
             messages.success(self.request, 'Account removed.')
-            return
+            return self.redirect()
 
         messages.error(self.request, 'Cannot remove the account.')
+        return self.redirect()
 
     def _create_user(self):
         """Creates a user from the POST data. Returns the created Account or None."""
+
+        acc_count = Account.objects.filter(home=self.home).count()
+        if acc_count >= Home.MAX_ACCOUNTS:
+            messages.error(self.request, f'Maximum number of Accounts reached ({Home.MAX_ACCOUNTS}).')
+            return self.redirect()
         
         if not self.user.has_perm('budget.manage_users'):
             messages.error(self.request, 'Cannot create a new user.')
-            return
-        
+            return self.redirect()
+
         form = UserCreationForm(self.request.POST)
         if form.is_valid():
             home = self.home
@@ -585,18 +672,20 @@ class HomeView(BaseHomeView):
             account.user = user
             account.save()
 
-            messages.success(self.request, f'User "{user.username}" was successfully created')
+            messages.success(
+                self.request, f'User "{user.username}" was successfully created')
+            return self.redirect()
         else:
             self.update_context(new_user_form=form)
             messages.error(self.request, 'Invalid user form.')
-            return
+            return self.render()
 
     def _make_transaction(self):
         """Makes a transaction to the specified user."""
 
         if not self.user.has_perm('budget.make_transactions'):
             messages.error(self.request, 'Cannot make a transaction.')
-            return
+            return self.redirect()
 
         post = self.request.POST
         form = forms.TransactionForm(post)
@@ -605,14 +694,16 @@ class HomeView(BaseHomeView):
         if form.is_valid():
             outcoming, incoming = form.make_transaction(
                 source=self.user.account, destination=destination)
-            
+
             valid = outcoming and incoming
-        
+
         if valid:
-            messages.success(self.request, 'Transaction made.')
+            messages.success('Transaction made.')
+            return self.redirect()
         else:
             self.update_context(transaction_form=form)
             messages.error(self.request, 'Invalid transaction form.')
+            return self.render()
 
 
 @method_decorator(
@@ -626,7 +717,8 @@ class AccountView(BaseUserView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        rename_form = context.get('rename_form') or forms.RenameAccountForm.from_account(self.user.account)
+        rename_form = context.get(
+            'rename_form') or forms.RenameAccountForm.from_account(self.user.account)
         context['rename_form'] = rename_form
 
         context['permissions'] = self.user.account.get_perm_descriptions()
@@ -649,11 +741,11 @@ class AccountView(BaseUserView):
         return ManageUserView.as_view()(request, *args, **kwargs)
 
     def post(self, request: HttpRequest, *args, **kwargs):
-        
+
         post = request.POST
 
         if post.get('rename') is not None:
-            self._rename()
+            return self._rename()
 
         if post.get('remove') is not None:
             return self._remove()
@@ -662,24 +754,29 @@ class AccountView(BaseUserView):
 
     def _rename(self):
         """Renames the user account."""
-        
+
         form = forms.RenameAccountForm(self.request.POST)
         if form.is_valid():
             self.user.account.rename(form.cleaned_data.get('first_name'))
             messages.success(self.request, 'Account renamed.')
+            return self.render()
         else:
             self.update_context(rename_form=form)
             messages.error(self.request, 'Invalid rename form.')
+            return self.render()
 
     def _remove(self):
-        """Removes the user account."""
+        """Removes the user account or the entire Home."""
 
         if self.user.account.is_admin():
-            pass # TODO: remove Home or something
+            self.user.account.home.remove()
+            messages.success(self.request, 'Home removed.')
+            return redirect('/')
 
         self.user.account.delete()
         messages.success(self.request, 'Account deleted.')
         return redirect('/')
+
 
 @method_decorator(
     (login_required(), home_required(), permission_required('budget.manage_users')),
@@ -728,11 +825,13 @@ class ManageUserView(BaseHomeView):
         context['is_mod'] = self.managed_acc.is_mod()
         context['make_mod'] = self.user.has_perm('budget.make_mod')
 
-        form = context.get('perm_form') or forms.ChangeUserPermissionsForm.from_account(self.managed_acc)
+        form = context.get(
+            'perm_form') or forms.ChangeUserPermissionsForm.from_account(self.managed_acc)
         context['granted_perms'] = form.all_perms
         context['perm_form'] = form
 
-        rename_form = context.get('rename_form') or forms.RenameAccountForm.from_account(self.managed_acc)
+        rename_form = context.get(
+            'rename_form') or forms.RenameAccountForm.from_account(self.managed_acc)
         context['rename_form'] = rename_form
 
         return context
@@ -741,13 +840,13 @@ class ManageUserView(BaseHomeView):
         post = request.POST
 
         if post.get('change') is not None:
-            self._change_perms()
+            return self._change_perms()
 
         elif post.get('make_mod') is not None:
-            self._add_mod()
+            return self._add_mod()
 
         elif post.get('remove_mod') is not None:
-            self._rm_mod()
+            return self._rm_mod()
 
         elif post.get('remove') is not None:
             return self._rm_user()
@@ -756,7 +855,7 @@ class ManageUserView(BaseHomeView):
             return self._pass_admin()
 
         elif post.get('rename') is not None:
-            self._rename()
+            return self._rename()
 
         return self.redirect()
 
@@ -765,33 +864,37 @@ class ManageUserView(BaseHomeView):
 
         if not self._check_account_and_perm():
             messages.error(self.request, 'Cannot change user permissions.')
-            return
+            return self.redirect()
 
         if self.managed_acc.is_mod() and not self.user.account.is_admin():
-            messages.error(self.request, 'Cannot change moderator permissions.')
-            return
+            messages.error(
+                self.request, 'Cannot change moderator permissions.')
+            return self.redirect()
 
         form = forms.ChangeUserPermissionsForm.from_post(
             self.managed_acc, self.request.POST)
         if form.is_valid():
             form.change_perms(self.managed_acc)
             messages.success(self.request, 'Permissions changed.')
+            return self.redirect()
         else:
             self.update_context(perm_form=form)
             messages.error(self.request, "Invalid user permissions form.")
+            return self.render()
 
     def _pass_admin(self):
         """Gives the admin role to another user."""
 
         if not self._check_account():
-            messages.error(self.request, 'Error passing Admin to the specified user.')
+            messages.error(
+                self.request, 'Error passing Admin to the specified user.')
             return redirect('/')
 
         if self.user.account.is_admin():
             self.home.change_admin(self.managed_acc)
             for perm in MOD_PERMS:
                 self.user.account.add_perm(perm[0])
-            
+
             messages.success(self.request, 'Admin role passed successfully.')
             return redirect('/home')
         else:
@@ -807,6 +910,8 @@ class ManageUserView(BaseHomeView):
         else:
             messages.error(self.request, 'Cannot add a Moderator.')
 
+        return self.redirect()
+
     def _rm_mod(self):
         """Removes a home mod."""
 
@@ -815,6 +920,8 @@ class ManageUserView(BaseHomeView):
             messages.success(self.request, 'Moderator removed.')
         else:
             messages.error(self.request, 'Cannot remove a Moderator.')
+
+        return self.redirect()
 
     def _rm_user(self):
         """Removes a user."""
@@ -836,7 +943,7 @@ class ManageUserView(BaseHomeView):
 
     def _rename(self):
         """Renames the user account."""
-        
+
         if not self._check_account_and_perm():
             messages.error(self.request, 'Cannot rename the user.')
 
@@ -844,6 +951,8 @@ class ManageUserView(BaseHomeView):
         if form.is_valid():
             self.managed_acc.rename(form.cleaned_data.get('first_name'))
             messages.success(self.request, 'Account renamed.')
+            return self.redirect()
         else:
             self.update_context(rename_form=form)
             messages.error(self.request, 'Invalid rename form.')
+            return self.render()
