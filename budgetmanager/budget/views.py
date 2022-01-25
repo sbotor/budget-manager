@@ -604,8 +604,6 @@ class HomeView(BaseHomeView):
             home=self.home).order_by('user__username')
 
         context['manage_users'] = self.user.has_perm('budget.manage_users')
-        context['see_other_accounts'] = self.user.has_perm(
-            'budget.see_other_accounts')
         context['make_transactions'] = self.user.has_perm(
             'budget.make_transactions')
 
@@ -754,7 +752,7 @@ class AccountView(BaseUserView):
         if form.is_valid():
             self.user.account.rename(form.cleaned_data.get('first_name'))
             messages.success(self.request, 'Account renamed.')
-            return self.render()
+            return self.redirect()
         else:
             self.update_context(rename_form=form)
             messages.error(self.request, 'Invalid rename form.')

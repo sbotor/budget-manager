@@ -15,7 +15,6 @@ MOD_GROUP = 'moderator'
 """Home moderator group name."""
 
 BASE_MOD_PERMS = {
-    ('see_other_accounts', 'See other users\' accounts'),
     ('manage_home_labels', 'Manage home labels'),
     ('make_transactions', 'Send money to another user'),
 }
@@ -241,7 +240,6 @@ class Account(ConvenienceModel):
     class Meta:
         permissions = {
             ('manage_users', 'Can manage user accounts.'),
-            ('see_other_accounts', 'Can see other users\' accounts.'),
         }
 
     user = models.OneToOneField(

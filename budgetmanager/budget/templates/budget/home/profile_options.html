@@ -13,7 +13,7 @@
     </div>
 
     <div class="row">
-        <h3 class="col-auto">{{ user.account.get_username }}</h3>
+        <h3 class="col-auto">{{ user.account.get_username }} <i>{{ user.account.get_title }}</i></h3>
         <div class="col-auto">
             <button class="btn btn-outline-secondary" data-bs-toggle="modal"
                 data-bs-target="#renameUserModal">Rename</button>
@@ -40,7 +40,7 @@
             <div class="row">
                 <div class="col">
                     <button class="btn btn-danger" data-bs-toggle="modal"
-                        data-bs-target="#removeUserModal">Remove user</button>
+                        data-bs-target="#removeUserModal">Remove account</button>
                     {% include 'budget/home/modals/remove_user_confirmation_modal.html' %}
                 </div>
             </div>
