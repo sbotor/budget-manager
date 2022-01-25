@@ -81,17 +81,6 @@ function createBarChart() {
     const incomeByMonth = document.getElementById('income').innerHTML.split(",");
     const expensesByMonth = document.getElementById('expenses').innerHTML.split(",");
 
-    //Change border of income when expenses are higher than income
-    //Problem: Legend always gets the first element, so in January the legend could have a red border
-    for (let i = 0; i < 12; i++) {
-        if (expensesByMonth[i] > incomeByMonth[i]) {
-            incomeBorderColours.push('rgba(255, 0, 0, 1)');
-        }
-        else {
-            incomeBorderColours.push('rgba(255, 0, 0, 0)');
-        }
-    }
-
     renderBarChart(barChart, incomeByMonth, expensesByMonth);
 }
 
@@ -105,7 +94,7 @@ function renderBarChart(target, income, expenses) {
                 backgroundColor: [
                     'rgba(0, 255, 0, 0.7)'
                 ],
-                borderColor: incomeBorderColours,
+                borderColor: 'rgba(0, 255, 0, 0)',
                 borderWidth: 3,
             },
             {
@@ -150,11 +139,8 @@ function getCurrency() {
 }
 
 const currency = getCurrency();
-//TODO: better colours
-const colours = ['rgba(139, 0, 0)', 'rgba(218, 165, 32, 1)', 'rgba(0, 255, 0 , 1)', 'rgba(32, 178, 170, 1)', 'rgba(0, 0, 255, 1)', 'rgba(200, 150, 0, 1)'];
+const colours = ['rgba(114, 147, 203, 1)', 'rgba(225, 151, 76, 1)', 'rgba(132, 186, 91 , 1)', 'rgba(211, 94, 96, 1)', 'rgba(128, 133, 133, 1)', 'rgba(144, 103, 167, 1)', 'rgba(171, 104, 87, 1)', 'rgba(204, 194, 16, 1)'];
 const months = ['January', 'Febuary', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-
-let incomeBorderColours = [];
 
 createBarChart();
 createPieChart();
